@@ -18,20 +18,18 @@ runtimes:
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
   enabled:
-    - actionlint@1.7.3
-    - checkov@3.2.255
+    - checkov@3.2.256
     - git-diff-check
     - gofmt@1.20.4
     - golangci-lint@1.61.0
     - markdownlint@0.42.0
-    - osv-scanner@1.8.5
+    - osv-scanner@1.9.0
     - prettier@3.3.3
     - trufflehog@3.82.6
     - yamllint@1.35.1
 actions:
-  disabled:
+  enabled:
     - trunk-announce
     - trunk-check-pre-push
     - trunk-fmt-pre-commit
-  enabled:
     - trunk-upgrade-available

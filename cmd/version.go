@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	RootCmd.SetVersionTemplate(version())
+	// RootCmd.SetVersionTemplate(version())
 	RootCmd.AddCommand(versionCmd)
 }
 
@@ -17,12 +17,10 @@ var versionCmd = &cobra.Command{
 	Long:  `All software has versions. This is ours.`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		version := version()
-
-		fmt.Print(version)
+		fmt.Println(longVersion())
 	},
 }
 
-func version() string {
-	return fmt.Sprintf("7dmt v%s - Donovan C. Young\n", RootCmd.Version)
+func longVersion() string {
+	return fmt.Sprintf("7DMT v%s - Donovan C. Young\n\n%s", RootCmd.Version, RootCmd.Short)
 }

@@ -25,7 +25,7 @@ check-all: fmt-all
     trunk check --all
 
 test:
-    go test ./7dmt/...
+    go test ./lib/...
 
 clean-bin:
     rm -f bin/*
