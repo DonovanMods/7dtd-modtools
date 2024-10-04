@@ -11,11 +11,12 @@ var flags struct {
 }
 
 var ModletCmd = &cobra.Command{
-	Use:   "modlet <modlet-templates>",
-	Args:  cobra.MinimumNArgs(1),
-	Short: "Build modlet from modlet template",
-	Long:  `Builds a modlet from a modlet template file`,
-	Run:   execute,
+	Use:     "modlet <modlet-templates>",
+	Args:    cobra.MinimumNArgs(1),
+	Short:   "Build modlet from modlet template",
+	Long:    `Builds a modlet from a modlet template file`,
+	GroupID: "cmd",
+	Run:     execute,
 }
 
 func execute(cmd *cobra.Command, modlets []string) {

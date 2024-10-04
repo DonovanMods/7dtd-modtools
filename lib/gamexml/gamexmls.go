@@ -10,7 +10,7 @@ type GameXMLs map[string]GameXML
 
 // New creates an empty GameXMLs map and returns a pointer to it
 func New() *GameXMLs {
-	var gameXMLs = make(GameXMLs)
+	var gameXMLs = make(GameXMLs, 100)
 
 	return &gameXMLs
 }
@@ -40,5 +40,5 @@ func (G *GameXMLs) Get(name string) (GameXML, bool) {
 
 // Reset resets the GameXMLs map to an empty map
 func (G *GameXMLs) Reset() {
-	*G = make(GameXMLs)
+	*G = *(New())
 }

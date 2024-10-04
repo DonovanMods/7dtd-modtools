@@ -19,8 +19,8 @@ var configFile string
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:     "7dmt <command> [flags]",
-	Version: "0.1.0",
 	Short:   "Tools used to create, modify, install, and validate 7 Days to Die Modlets",
+	Version: "0.1.0",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		verbosity, _ := cmd.Flags().GetCount("verbose")
 		viper.Set("verbosity", verbosity)
@@ -63,8 +63,11 @@ func init() {
 	}
 
 	// Add subcommands
+
+	var cmdGroup = cobra.Group{ID: "cmd", Title: "Commands"}
+
+	RootCmd.AddGroup(&cmdGroup)
 	RootCmd.AddCommand(sub1.BuildCmd)
-	// RootCmd.AddCommand(sub2.validateCmd)
 }
 
 func version() string {
