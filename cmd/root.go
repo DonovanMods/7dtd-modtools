@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	sub1 "github.com/donovanmods/7dmt/cmd/build"
+	sub1 "github.com/donovanmods/7dtd-modtools/cmd/build"
 	cc "github.com/ivanpirog/coloredcobra"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -18,7 +18,7 @@ var configFile string
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:     "7dmt <command> [flags]",
+	Use:     "7dtd-modtools <command> [flags]",
 	Short:   "Tools used to create, modify, install, and validate 7 Days to Die Modlets",
 	Version: "0.1.0",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -82,7 +82,7 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		configFile = filepath.Join(home, ".config", "7dmt", "config")
+		configFile = filepath.Join(home, ".config", "7dtd-modtools", "config")
 	}
 
 	viper.SetConfigFile(configFile)

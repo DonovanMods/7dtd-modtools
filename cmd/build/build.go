@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	sub1 "github.com/donovanmods/7dmt/cmd/build/modlet"
-	sub2 "github.com/donovanmods/7dmt/cmd/build/new"
+	sub1 "github.com/donovanmods/7dtd-modtools/cmd/build/modlet"
+	sub2 "github.com/donovanmods/7dtd-modtools/cmd/build/new"
 	"github.com/spf13/cobra"
 )
 

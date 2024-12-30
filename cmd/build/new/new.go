@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/donovanmods/7dmt/lib/modinfo"
+	"github.com/donovanmods/7dtd-modtools/lib/modinfo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -55,7 +55,7 @@ func execute(cmd *cobra.Command, name []string) {
 		fmt.Println("Wrote ModInfo.xml")
 	}
 
-	readme := []byte(fmt.Sprintf("# %s\n\nThis is the README for a new modlet created by the 7 Days Modlet Tools (7dmt).\n", modletName))
+	readme := []byte(fmt.Sprintf("# %s\n\nThis is the README for a new modlet created by the 7 Days Modlet Tools (7dtd-modtools).\n", modletName))
 	cobra.CheckErr(os.WriteFile(filepath.Join(modletBase, "README.md"), readme, 0644))
 
 	if verbosity > 1 {

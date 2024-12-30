@@ -4,7 +4,7 @@ import (
 	XML "encoding/xml"
 	"fmt"
 
-	"github.com/donovanmods/7dmt/lib/xmltools"
+	"github.com/donovanmods/7dtd-modtools/lib/xmltools"
 )
 
 type xmlValue struct {

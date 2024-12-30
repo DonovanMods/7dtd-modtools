@@ -3,7 +3,7 @@ package gamexml_test
 import (
 	"testing"
 
-	"github.com/donovanmods/7dmt/lib/gamexml"
+	"github.com/donovanmods/7dtd-modtools/lib/gamexml"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
