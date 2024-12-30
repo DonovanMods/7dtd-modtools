@@ -29,7 +29,7 @@ func execute(cmd *cobra.Command, name []string) {
 	var verbosity = viper.GetInt("verbosity")
 
 	if len(name) == 0 {
-		fmt.Println(errors.New("Please provide a Modlet name to use on the command line"))
+		fmt.Println(errors.New("please provide a Modlet name to use on the command line"))
 		fmt.Printf("Usage: %s\n\n", cmd.Use)
 		os.Exit(1)
 	}
