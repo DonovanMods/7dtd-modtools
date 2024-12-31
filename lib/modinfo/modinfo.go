@@ -19,6 +19,7 @@ package modinfo
 import (
 	XML "encoding/xml"
 	"fmt"
+	"path/filepath"
 
 	"github.com/donovanmods/7dtd-modtools/lib/xmltools"
 )
@@ -28,14 +29,31 @@ type xmlValue struct {
 	Compat string `xml:"compat,attr,omitempty"`
 }
 
+type modInfoMeta struct {
+	path string
+}
+
 type ModInfo struct {
-	XMLName     XML.Name `xml:"modinfo"`
+	XMLName     XML.Name
 	Name        xmlValue `xml:"Name"`
 	DisplayName xmlValue `xml:"DisplayName"`
 	Description xmlValue `xml:"Description"`
 	Author      xmlValue `xml:"Author"`
 	Version     xmlValue `xml:"Version"`
 	Website     xmlValue `xml:"Website"`
+	meta        modInfoMeta
+}
+
+func (M ModInfo) Filename() string {
+	return filepath.Base(M.meta.path)
+}
+
+func (M ModInfo) Path() string {
+	return M.meta.path
+}
+
+func (M *ModInfo) SetPath(path string) {
+	(*M).meta.path = path
 }
 
 func (M ModInfo) XML() (string, error) {
