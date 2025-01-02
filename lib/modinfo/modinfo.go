@@ -20,8 +20,11 @@ import (
 	XML "encoding/xml"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/donovanmods/7dtd-modtools/lib/xmltools"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type xmlValue struct {
@@ -42,6 +45,17 @@ type ModInfo struct {
 	Version     xmlValue `xml:"Version"`
 	Website     xmlValue `xml:"Website"`
 	meta        modInfoMeta
+}
+
+func (M ModInfo) NameStr() string {
+	caser := cases.Title(language.English, cases.NoLower)
+	words := strings.Split(M.Name.Value, "_")
+
+	for i := range words {
+		words[i] = caser.String(words[i])
+	}
+
+	return strings.Join(words, " ")
 }
 
 func (M ModInfo) Filename() string {

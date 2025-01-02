@@ -24,10 +24,18 @@ import (
 	"strings"
 )
 
-func ParseDir(dir string) *ModInfos {
+type ParseOpts struct {
+	Directory string
+	Verbosity int
+}
+
+func ParseDir(opts ParseOpts) *ModInfos {
+	var directory = opts.Directory
+	var verbosity = opts.Verbosity
+
 	modInfos := Make(0)
 
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -48,6 +56,10 @@ func ParseDir(dir string) *ModInfos {
 				return nil
 			}
 
+			if verbosity >= 2 {
+				log.Printf("Read modinfo %q as %q\n", modInfo.Filename(), modInfo.NameStr())
+			}
+
 			*modInfos = modInfos.Add(&modInfo)
 		}
 
@@ -55,7 +67,7 @@ func ParseDir(dir string) *ModInfos {
 	})
 
 	if err != nil {
-		log.Printf("Error walking the path %s: %v", dir, err)
+		log.Printf("Error walking the path %s: %v", directory, err)
 	}
 
 	return modInfos

@@ -33,7 +33,7 @@ var configFile string
 var RootCmd = &cobra.Command{
 	Use:     "7dtd-modtools <command> [flags]",
 	Short:   "Tools used to create, modify, install, and validate 7 Days to Die Modlets",
-	Version: "0.1.0",
+	Version: "0.1.2",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		verbosity, _ := cmd.Flags().GetCount("verbose")
 		viper.Set("verbosity", verbosity)
