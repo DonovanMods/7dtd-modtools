@@ -30,13 +30,20 @@ func (M *ModInfos) Add(modInfo *ModInfo) ModInfos {
 	return append(*M, modInfo)
 }
 
-func (M *ModInfos) Get(name string) (*ModInfo, bool) {
-	if name == "" {
+func (M *ModInfos) Find(searchStr string) (*ModInfo, bool) {
+	if searchStr == "" {
 		return nil, false
 	}
 
 	for _, modInfo := range *M {
-		if modInfo.Name.Value == name {
+		switch searchStr {
+		case modInfo.Name.Value:
+			return modInfo, true
+		case modInfo.DisplayName.Value:
+			return modInfo, true
+		case modInfo.Filename():
+			return modInfo, true
+		case modInfo.Path():
 			return modInfo, true
 		}
 	}

@@ -29,7 +29,7 @@ type ParseOpts struct {
 	Verbosity int
 }
 
-func ParseDir(opts ParseOpts) *ModInfos {
+func ParseDir(opts ParseOpts) (*ModInfos, error) {
 	var directory = opts.Directory
 	var verbosity = opts.Verbosity
 
@@ -43,8 +43,8 @@ func ParseDir(opts ParseOpts) *ModInfos {
 		if !info.IsDir() && strings.ToLower(info.Name()) == "modinfo.xml" {
 			data, err := os.ReadFile(path)
 			if err != nil {
-				log.Printf("Error reading file %s: %v", path, err)
-				return nil
+				log.Printf("ERROR Error reading file %s: %v", path, err)
+				return err
 			}
 
 			var modInfo ModInfo
@@ -52,12 +52,12 @@ func ParseDir(opts ParseOpts) *ModInfos {
 
 			err = xml.Unmarshal(data, &modInfo)
 			if err != nil {
-				log.Printf("Error unmarshalling XML from file %s: %v", path, err)
-				return nil
+				log.Printf("ERROR Error unmarshalling XML from file %s: %v", path, err)
+				return err
 			}
 
-			if verbosity >= 2 {
-				log.Printf("Read modinfo %q as %q\n", modInfo.Filename(), modInfo.NameStr())
+			if verbosity > 2 {
+				log.Printf("INFO Read modinfo %q\n", modInfo.Filename())
 			}
 
 			*modInfos = modInfos.Add(&modInfo)
@@ -68,7 +68,8 @@ func ParseDir(opts ParseOpts) *ModInfos {
 
 	if err != nil {
 		log.Printf("Error walking the path %s: %v", directory, err)
+		return nil, err
 	}
 
-	return modInfos
+	return modInfos, nil
 }

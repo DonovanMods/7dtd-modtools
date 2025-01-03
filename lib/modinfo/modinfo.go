@@ -20,11 +20,8 @@ import (
 	XML "encoding/xml"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/donovanmods/7dtd-modtools/lib/xmltools"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 type xmlValue struct {
@@ -47,30 +44,23 @@ type ModInfo struct {
 	meta        modInfoMeta
 }
 
-func (M ModInfo) NameStr() string {
-	caser := cases.Title(language.English, cases.NoLower)
-	words := strings.Split(M.Name.Value, "_")
-
-	for i := range words {
-		words[i] = caser.String(words[i])
-	}
-
-	return strings.Join(words, " ")
-}
-
-func (M ModInfo) Filename() string {
-	return filepath.Base(M.meta.path)
-}
-
-func (M ModInfo) Path() string {
-	return M.meta.path
-}
-
 func (M *ModInfo) SetPath(path string) {
 	(*M).meta.path = path
 }
 
-func (M ModInfo) XML() (string, error) {
+func (M *ModInfo) Path() string {
+	return M.meta.path
+}
+
+func (M *ModInfo) Dir() string {
+	return filepath.Dir(M.meta.path)
+}
+
+func (M *ModInfo) Filename() string {
+	return filepath.Base(M.meta.path)
+}
+
+func (M *ModInfo) XML() (string, error) {
 	xml, err := XML.MarshalIndent(M, "", "  ")
 	if err != nil {
 		return "", err
@@ -81,8 +71,8 @@ func (M ModInfo) XML() (string, error) {
 	return string(xml), nil
 }
 
-func New(modletName string) ModInfo {
-	return ModInfo{
+func New(modletName string) *ModInfo {
+	return &ModInfo{
 		Name:        xmlValue{Value: modletName},
 		DisplayName: xmlValue{Value: "My New Modlet"},
 		Description: xmlValue{Value: fmt.Sprintf("This is the description for %s -- please change it", modletName)},
