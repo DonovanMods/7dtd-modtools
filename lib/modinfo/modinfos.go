@@ -20,8 +20,8 @@ package modinfo
 type ModInfos []*ModInfo
 
 // New creates an empty GameXMLs map and returns a pointer to it
-func Make(qty int) *ModInfos {
-	var modInfos = make(ModInfos, qty)
+func NewModInfos() *ModInfos {
+	modInfos := make(ModInfos, 0, 1)
 
 	return &modInfos
 }

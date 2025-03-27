@@ -24,6 +24,8 @@ import (
 	"github.com/donovanmods/7dtd-modtools/lib/xmltools"
 )
 
+const XMLHeader = `<?xml version="1.0" encoding="UTF-8"?>`
+
 type xmlValue struct {
 	Value  string `xml:"value,attr"`
 	Compat string `xml:"compat,attr,omitempty"`
@@ -34,7 +36,7 @@ type modInfoMeta struct {
 }
 
 type ModInfo struct {
-	XMLName     XML.Name
+	XMLName     XML.Name `xml:"xml"`
 	Name        xmlValue `xml:"Name"`
 	DisplayName xmlValue `xml:"DisplayName"`
 	Description xmlValue `xml:"Description"`
@@ -68,10 +70,10 @@ func (M *ModInfo) XML() (string, error) {
 
 	xml = []byte(xmltools.RemoveClosingXMLTags(string(xml)))
 
-	return string(xml), nil
+	return fmt.Sprintf("%s\n%s", XMLHeader, xml), nil
 }
 
-func New(modletName string) *ModInfo {
+func NewModInfo(modletName string) *ModInfo {
 	return &ModInfo{
 		Name:        xmlValue{Value: modletName},
 		DisplayName: xmlValue{Value: "My New Modlet"},

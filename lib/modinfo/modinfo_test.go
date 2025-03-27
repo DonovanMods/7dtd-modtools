@@ -1,14 +1,15 @@
-package modinfo
+package modinfo_test
 
 import (
 	"testing"
 
+	"github.com/donovanmods/7dtd-modtools/lib/modinfo"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNew(t *testing.T) {
 	modletName := "TestModlet"
-	modInfo := New(modletName)
+	modInfo := modinfo.NewModInfo(modletName)
 
 	assert.Equal(t, modletName, modInfo.Name.Value, "Expected Name.Value to be %s", modletName)
 	assert.Equal(t, "My New Modlet", modInfo.DisplayName.Value, "Expected DisplayName.Value to be 'My New Modlet'")
@@ -22,18 +23,20 @@ func TestNew(t *testing.T) {
 
 func TestXML(t *testing.T) {
 	modletName := "TestModlet"
-	modInfo := New(modletName)
+	modInfo := modinfo.NewModInfo(modletName)
 
 	xmlOutput, err := modInfo.XML()
 	assert.NoError(t, err, "Expected no error while generating XML")
 
-	expectedXML := `<modinfo>
+	expectedXML := modinfo.XMLHeader + `
+<xml>
   <Name value="TestModlet" />
   <DisplayName value="My New Modlet" />
   <Description value="This is the description for TestModlet -- please change it" />
   <Author value="Unknown" />
   <Version value="0.1.0" compat="V1" />
   <Website value="https://example.org" />
-</modinfo>`
+</xml>`
+
 	assert.Equal(t, expectedXML, xmlOutput, "Expected XML output to match")
 }

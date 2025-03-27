@@ -26,7 +26,7 @@ var NewCmd = &cobra.Command{
 }
 
 func execute(cmd *cobra.Command, name []string) {
-	var verbosity = viper.GetInt("verbosity")
+	verbosity := viper.GetInt("verbosity")
 
 	if len(name) == 0 {
 		fmt.Println(errors.New("please provide a Modlet name to use on the command line"))
@@ -45,7 +45,7 @@ func execute(cmd *cobra.Command, name []string) {
 		fmt.Printf("Created %s directories\n", modletBase)
 	}
 
-	xml, err := modinfo.New(modletName).XML()
+	xml, err := modinfo.NewModInfo(modletName).XML()
 	if err != nil {
 		cobra.CheckErr(err)
 	}

@@ -30,17 +30,17 @@ type ParseOpts struct {
 }
 
 func ParseDir(opts ParseOpts) (*ModInfos, error) {
-	var directory = opts.Directory
-	var verbosity = opts.Verbosity
+	directory := opts.Directory
+	verbosity := opts.Verbosity
 
-	modInfos := Make(0)
+	modInfos := make(ModInfos, 0, 1)
 
 	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if !info.IsDir() && strings.ToLower(info.Name()) == "modinfo.xml" {
+		if !info.IsDir() && strings.EqualFold(info.Name(), "modinfo.xml") {
 			data, err := os.ReadFile(path)
 			if err != nil {
 				log.Printf("ERROR Error reading file %s: %v", path, err)
@@ -60,16 +60,15 @@ func ParseDir(opts ParseOpts) (*ModInfos, error) {
 				log.Printf("INFO Read modinfo %q\n", modInfo.Filename())
 			}
 
-			*modInfos = modInfos.Add(&modInfo)
+			modInfos = modInfos.Add(&modInfo)
 		}
 
 		return nil
 	})
-
 	if err != nil {
 		log.Printf("Error walking the path %s: %v", directory, err)
 		return nil, err
 	}
 
-	return modInfos, nil
+	return &modInfos, nil
 }

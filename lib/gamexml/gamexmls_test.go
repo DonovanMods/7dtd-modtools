@@ -17,7 +17,7 @@ type GameXMLTestSuite struct {
 
 // SetupTest runs before each test
 func (suite *GameXMLTestSuite) SetupTest() {
-	suite.gameXMLs = gamexml.New()
+	suite.gameXMLs = gamexml.NewGameXMLs()
 }
 
 // TearDownTest runs after each test

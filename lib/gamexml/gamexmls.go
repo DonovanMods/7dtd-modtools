@@ -25,8 +25,8 @@ var ErrNoId = errors.New("GameXML must have an id")
 type GameXMLs map[string]GameXML
 
 // New creates an empty GameXMLs map and returns a pointer to it
-func New() *GameXMLs {
-	var gameXMLs = make(GameXMLs, 100)
+func NewGameXMLs() *GameXMLs {
+	gameXMLs := make(GameXMLs, 100)
 
 	return &gameXMLs
 }
@@ -56,5 +56,5 @@ func (G *GameXMLs) Get(name string) (GameXML, bool) {
 
 // Reset resets the GameXMLs map to an empty map
 func (G *GameXMLs) Reset() {
-	*G = *(New())
+	*G = *(NewGameXMLs())
 }
