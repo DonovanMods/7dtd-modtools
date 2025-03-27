@@ -24,8 +24,6 @@ import (
 	"github.com/donovanmods/7dtd-gamedata/xmltools"
 )
 
-const XMLHeader = `<?xml version="1.0" encoding="UTF-8"?>`
-
 type xmlValue struct {
 	Value  string `xml:"value,attr"`
 	Compat string `xml:"compat,attr,omitempty"`
@@ -70,7 +68,7 @@ func (M *ModInfo) XML() (string, error) {
 
 	xml = []byte(xmltools.RemoveClosingXMLTags(string(xml)))
 
-	return fmt.Sprintf("%s\n%s", XMLHeader, xml), nil
+	return XML.Header + string(xml), nil
 }
 
 func NewModInfo(modletName string) *ModInfo {

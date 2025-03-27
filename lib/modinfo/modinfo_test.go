@@ -1,6 +1,7 @@
 package modinfo_test
 
 import (
+	XML "encoding/xml"
 	"testing"
 
 	"github.com/donovanmods/7dtd-modtools/lib/modinfo"
@@ -28,8 +29,7 @@ func TestXML(t *testing.T) {
 	xmlOutput, err := modInfo.XML()
 	assert.NoError(t, err, "Expected no error while generating XML")
 
-	expectedXML := modinfo.XMLHeader + `
-<xml>
+	expectedXML := XML.Header + `<xml>
   <Name value="TestModlet" />
   <DisplayName value="My New Modlet" />
   <Description value="This is the description for TestModlet -- please change it" />

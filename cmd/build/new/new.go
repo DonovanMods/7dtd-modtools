@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	XML "encoding/xml"
 	"errors"
 	"fmt"
 	"os"
@@ -38,6 +37,12 @@ func execute(cmd *cobra.Command, name []string) {
 	modletBase := filepath.Join(flags.dir, name[0])
 	configDir := filepath.Join(modletBase, "Config")
 
+	if !cmd.Flag("force").Changed {
+		if _, err := os.Stat(modletBase); !os.IsNotExist(err) {
+			cobra.CheckErr(fmt.Errorf("modlet directory %q already exists -- refusing to overwrite", modletBase))
+		}
+	}
+
 	cobra.CheckErr(os.MkdirAll(configDir, 0755))
 	cobra.CheckErr(os.WriteFile(filepath.Join(configDir, ".keep"), []byte{}, 0644))
 
@@ -49,7 +54,7 @@ func execute(cmd *cobra.Command, name []string) {
 	if err != nil {
 		cobra.CheckErr(err)
 	}
-	cobra.CheckErr(os.WriteFile(filepath.Join(modletBase, "ModInfo.xml"), []byte(XML.Header+xml), 0644))
+	cobra.CheckErr(os.WriteFile(filepath.Join(modletBase, "ModInfo.xml"), []byte(xml), 0644))
 
 	if verbosity > 1 {
 		fmt.Println("Wrote ModInfo.xml")
@@ -68,6 +73,7 @@ func execute(cmd *cobra.Command, name []string) {
 }
 
 func init() {
-	NewCmd.Flags().StringVarP(&flags.dir, "dir", "d", ".", `The directory to create the modlet (default "."")`)
+	NewCmd.Flags().StringVarP(&flags.dir, "dir", "d", ".", `The directory to create the modlet`)
+	NewCmd.Flags().BoolP("force", "f", false, "Force overwrite of existing modlet directory")
 	_ = NewCmd.MarkFlagRequired("name")
 }
