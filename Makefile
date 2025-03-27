@@ -1,3 +1,5 @@
+PKG_BASE := $(shell basename `pwd`)
+
 default: check
 
 ## Main Commands
@@ -38,7 +40,7 @@ upgrade: tidy
 ## Build sub-commands
 
 build-win:
-	GOOS=windows GOARCH=amd64 go build -o "bin/$(basename ${PWD}).exe" ./main.go
+	GOOS=windows GOARCH=amd64 go build -o "bin/${PKG_BASE}.exe" ./main.go
 
 ## Git Hooks
 pre-commit: clean check test
