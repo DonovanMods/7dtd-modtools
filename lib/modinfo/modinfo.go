@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/donovanmods/7dtd-modtools/lib/xmltools"
+	"github.com/donovanmods/7dtd-gamedata/xmltools"
 )
 
 const XMLHeader = `<?xml version="1.0" encoding="UTF-8"?>`
