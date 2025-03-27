@@ -1,0 +1,95 @@
+# https://taskfile.dev
+
+version: "3"
+
+tasks:
+  default:
+    cmds:
+      - task: check
+
+  check:
+    desc: Run linters
+    deps: [format]
+    cmds:
+      - trunk check
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./lib/...
+
+  tidy:
+    desc: Tidy up the module
+    cmds:
+      - go mod tidy
+
+  format:
+    desc: Run formatters
+    deps: [tidy]
+    cmds:
+      - trunk fmt
+
+  upgrade:
+    desc: Upgrade dependencies
+    aliases: [update]
+    cmds:
+      - go get -u
+      - trunk upgrade
+
+  clean:
+    desc: Clean up the module
+    cmds:
+      - rm -f bin/*
+      - rm -f pkg/*
+      - go clean -i -cache -testcache
+
+  build:
+    desc: Build All the Packages
+    aliases: [package]
+    deps: [check]
+    cmds:
+      - task: test
+      - for: [darwin, linux, windows]
+        task: build-{{.ITEM}}
+
+  build-darwin:
+    desc: Build the executable for MacOS
+    env:
+      GOOS: darwin
+      GOARCH: arm64
+    vars:
+      PKG: 7dmt-${GOOS}-${GOARCH}
+    cmds:
+      - go build -o "bin/{{.PKG}}" ./main.go
+      - zip -r "pkg/{{.PKG}}.zip" "bin/{{.PKG}}"
+    generates:
+      - bin/{{.PKG}}
+      - bin/{{.PKG}}.zip
+
+  build-linux:
+    desc: Build the executable for Linux
+    env:
+      GOOS: linux
+      GOARCH: amd64
+    vars:
+      PKG: 7dmt-${GOOS}-${GOARCH}
+    cmds:
+      - go build -o "bin/{{.PKG}}" ./main.go
+      - zip -r "pkg/{{.PKG}}.zip" "bin/{{.PKG}}"
+    generates:
+      - bin/{{.PKG}}
+      - bin/{{.PKG}}.zip
+
+  build-windows:
+    desc: Build the executable for Windows
+    env:
+      GOOS: windows
+      GOARCH: amd64
+    vars:
+      PKG: 7dmt-${GOOS}-${GOARCH}.exe
+    cmds:
+      - go build -o "bin/{{.PKG}}" ./main.go
+      - zip -r "pkg/{{.PKG}}.zip" "bin/{{.PKG}}"
+    generates:
+      - bin/{{.PKG}}
+      - bin/{{.PKG}}.zip
