@@ -3,7 +3,7 @@ module github.com/donovanmods/7dtd-modtools
 go 1.24.1
 
 require (
-	github.com/donovanmods/7dtd-gamedata v0.0.0-20250327014845-20b4877eb0fc
+	github.com/donovanmods/7dtd-gamedata v0.1.0-alpha1
 	github.com/ivanpirog/coloredcobra v1.0.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1

@@ -77,7 +77,7 @@ func init() {
 
 	// Add subcommands
 
-	var cmdGroup = cobra.Group{ID: "cmd", Title: "Commands"}
+	cmdGroup := cobra.Group{ID: "cmd", Title: "Commands"}
 
 	RootCmd.AddGroup(&cmdGroup)
 	RootCmd.AddCommand(sub1.BuildCmd)
@@ -89,7 +89,6 @@ func version() string {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-
 	// Set the configFile if not set by flags
 	if configFile == "" {
 		home, err := os.UserHomeDir()
