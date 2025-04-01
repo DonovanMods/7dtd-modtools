@@ -17,6 +17,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -94,12 +95,15 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		configFile = filepath.Join(home, ".config", "7dtd-modtools", "config")
+		configFile = filepath.Join(home, ".7dtd-modtools")
 	}
 
 	viper.SetConfigFile(configFile)
 	viper.SetConfigType("yaml")
 	viper.AutomaticEnv() // read in environment variables that match
 
-	cobra.CheckErr(viper.ReadInConfig())
+	if err := viper.ReadInConfig(); !errors.Is(err, os.ErrNotExist) {
+		fmt.Fprintf(os.Stderr, "Error reading config file: %s\n", err)
+		os.Exit(1)
+	}
 }

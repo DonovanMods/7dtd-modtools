@@ -1,13 +1,14 @@
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/donovanmods/7dtd-modtools/lib/builder"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var flags struct {
-	name string
+	gamedir string
+	outdir  string
 }
 
 var ModletCmd = &cobra.Command{
@@ -19,12 +20,18 @@ var ModletCmd = &cobra.Command{
 	Run:     execute,
 }
 
-func execute(cmd *cobra.Command, modlets []string) {
-	fmt.Printf(">>>> in execute for `build modlet`")
-	fmt.Printf("with name: %s, modlets: %v\n", flags.name, modlets)
+func execute(cmd *cobra.Command, templates []string) {
+	cobra.CheckErr(builder.BuildModlet(templates, flags.gamedir, flags.outdir))
 }
 
 func init() {
-	ModletCmd.Flags().StringVarP(&flags.name, "name", "n", "", "Name of the output modlet")
-	_ = ModletCmd.MarkFlagRequired("name")
+	ModletCmd.Flags().StringVarP(&flags.gamedir, "gamedir", "g", "", "Directory where the game's Config XML files live")
+	cobra.CheckErr(viper.BindPFlag("gamedir", ModletCmd.Flags().Lookup("gamedir")))
+	_ = ModletCmd.MarkFlagRequired("gamedir")
+
+	ModletCmd.Flags().StringVarP(&flags.outdir, "outdir", "o", ".", "Output directory")
+	cobra.CheckErr(viper.BindPFlag("outdir", ModletCmd.Flags().Lookup("outdir")))
+
+	// ModletCmd.Flags().StringVarP(&flags.name, "name", "n", "", "Name of the output modlet")
+	// _ = ModletCmd.MarkFlagRequired("gamedir")
 }
