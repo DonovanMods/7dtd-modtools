@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/donovanmods/7dtd-modtools/lib/modinfo"
+	"github.com/donovanmods/7dtd-gamedata/modinfo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
