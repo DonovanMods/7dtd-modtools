@@ -1,0 +1,31 @@
+{{- modlet "ExampleModlet" -}}
+
+{{- output "ModInfo.xml" -}}
+{{- xmlHeader -}}
+<xml>
+  <Name value="ExampleModlet" />
+  <DisplayName value="This is an Example Modlet" />
+  <Version value="0.1.0" compat="1.0" />
+  <Description value="A Really cool example of a modlet built by Donovan's ModBulder" />
+  <Author value="Donovan" />
+  <Website value="https://example.com" />
+</xml>
+{{- write -}}
+
+{{- output "Config/blocks.xml" -}}
+<configs>
+  <!-- BLOCKS -->
+  <blocks>
+    <block name="exampleBlock" type="exampleBlock" />
+  </blocks>
+</configs>
+{{- write -}}
+
+{{- output "Config/entityclasses.xml" -}}
+<configs>
+  <!-- ENTITY CLASSES -->
+  <entityclasses>
+    <entityclass name="exampleEntity" type="exampleEntity" />
+  </entityclasses>
+</configs>
+{{- write -}}

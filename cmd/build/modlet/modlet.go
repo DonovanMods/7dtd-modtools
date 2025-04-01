@@ -17,11 +17,9 @@ var ModletCmd = &cobra.Command{
 	Short:   "Build modlet from modlet template",
 	Long:    `Builds a modlet from a modlet template file`,
 	GroupID: "cmd",
-	Run:     execute,
-}
-
-func execute(cmd *cobra.Command, templates []string) {
-	cobra.CheckErr(builder.BuildModlet(templates, flags.gamedir, flags.outdir))
+	Run: func(cmd *cobra.Command, templates []string) {
+		cobra.CheckErr(builder.BuildModlets(templates, flags.gamedir, flags.outdir))
+	},
 }
 
 func init() {
@@ -31,7 +29,4 @@ func init() {
 
 	ModletCmd.Flags().StringVarP(&flags.outdir, "outdir", "o", ".", "Output directory")
 	cobra.CheckErr(viper.BindPFlag("outdir", ModletCmd.Flags().Lookup("outdir")))
-
-	// ModletCmd.Flags().StringVarP(&flags.name, "name", "n", "", "Name of the output modlet")
-	// _ = ModletCmd.MarkFlagRequired("gamedir")
 }

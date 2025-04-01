@@ -6,83 +6,164 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
 )
 
-type Buffer struct {
+type fileBuffer struct {
 	buffer *bytes.Buffer
 	writer io.WriteCloser
 }
 
-type BufferMap map[string]Buffer
+type null string // we use this when we need to output nothing
 
-func BuildModlet(templates []string, gamedir string, outdir string) error {
-	var modInfo *modinfo.ModInfo
-	bufmap := BufferMap{}
-	buffer := &bytes.Buffer{}
-	startCalled := false
+// Holds buffers and io.WriteCloser for each output file
+type fileBufferMap map[string]fileBuffer
 
-	if len(templates) == 0 {
+// Used to track output/write state
+var outputFound bool
+
+func BuildModlets(templates []string, gamedir string, outdir string) error {
+	for _, t := range templates {
+		if err := BuildModlet(t, gamedir, outdir); err != nil {
+			return fmt.Errorf("error building modlet from template %s: %w", t, err)
+		}
+	}
+	return nil
+}
+
+func BuildModlet(tmpl string, gamedir string, outdir string) error {
+	var modInfo modinfo.ModInfo
+
+	fBufMap := make(fileBufferMap)
+	gBuffer := bytes.NewBuffer(nil)
+	fBuffer := &fileBuffer{
+		buffer: gBuffer,
+		writer: nil,
+	}
+
+	if strings.TrimSpace(tmpl) == "" {
 		return errors.New("no templates provided")
 	}
 
-	if gamedir == "" {
+	if strings.TrimSpace(gamedir) == "" {
 		return errors.New("gamedir not provided")
 	}
 
-	if outdir == "" {
+	if strings.TrimSpace(outdir) == "" {
 		return errors.New("outdir not provided")
 	}
 
-	templateFile := filepath.Base(templates[0])
+	outdir = filepath.Clean(outdir)
+	templateName := filepath.Base(tmpl)
 
-	modlet := func(path string) string {
-		if path == "" {
-			log.Fatal("modlet path not provided")
-		}
+	log.Printf("processing template: %s\n", templateName)
 
-		cleanPath := filepath.Clean(path)
-
-		modInfo = modinfo.NewModInfo(filepath.Base(cleanPath))
-		modInfo.SetPath(cleanPath)
-
-		return ""
+	t, err := template.New(templateName).
+		Funcs(template.FuncMap{
+			"modlet":    modletFunc(outdir, &modInfo),
+			"output":    outputFunc(fBuffer, gBuffer, fBufMap, &modInfo),
+			"write":     writeFunc(fBuffer, gBuffer),
+			"xmlHeader": func() string { return xml.Header },
+		}).
+		ParseFiles(tmpl)
+	if err != nil {
+		return fmt.Errorf("error parsing template %s: %w", templateName, err)
 	}
 
-	start := func() string {
-		log.Println("Start function called")
-
-		if modInfo == nil || modInfo.Path() == "" {
-			log.Fatal("Please set the modlet path using {{ modlet <path> }}")
-		}
-
-		buffer.Reset()
-		startCalled = true
-
-		return ""
+	if err := t.ExecuteTemplate(gBuffer, templateName, nil); err != nil {
+		return fmt.Errorf("error executing template %s: %w", templateName, err)
 	}
 
-	writeTo := func(path string) string {
+	// Write our fBuffer to disk
+	for path, fBuffer := range fBufMap {
+		if err := writeBuf(path, fBuffer); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	return nil
+}
+
+func mkPath(path string) error {
+	if !fs.ValidPath(path) {
+		return fmt.Errorf("invalid path %q", path)
+	}
+
+	_, err := os.Stat(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		log.Printf("creating directory: %q", path)
+
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return fmt.Errorf("unable to create directory %q: %w", path, err)
+		}
+	}
+
+	return nil
+}
+
+func writeBuf(path string, fBuffer fileBuffer) error {
+	log.Printf("writing %q\n", path)
+
+	if fBuffer.writer != nil {
+		defer func() {
+			if err := fBuffer.writer.Close(); err != nil {
+				log.Fatalf("error closing output file: %v", err)
+			}
+		}()
+
+		if _, err := fBuffer.buffer.WriteTo(fBuffer.writer); err != nil {
+			return fmt.Errorf("error writing to output file %s: %w", path, err)
+		}
+	}
+
+	return nil
+}
+
+func modletFunc(outdir string, modInfo *modinfo.ModInfo) func(string) null {
+	return func(name string) null {
+		if name == "" {
+			log.Fatal("modlet name must be provided")
+		}
+
+		path := filepath.Join(outdir, name)
+
+		*modInfo = *modinfo.NewModInfo(name)
+		modInfo.SetPath(path)
+
+		if err := mkPath(modInfo.Path()); err != nil {
+			log.Fatal(err)
+		}
+
+		log.Printf("creating modlet %q\n", modInfo.GetValue("name"))
+
+		return null("")
+	}
+}
+
+func outputFunc(fBuffer *fileBuffer, gBuffer *bytes.Buffer, fBufMap fileBufferMap, modInfo *modinfo.ModInfo) func(string) null {
+	return func(path string) null {
 		if path == "" {
 			log.Fatal("output file not provided")
 		}
 
-		if !startCalled {
-			log.Fatal("start function not called before writeTo")
+		if modInfo.Path() == "" {
+			log.Fatal("please set the modlet using {{ modlet <name> }}")
 		}
 
 		cleanPath := filepath.Clean(path)
 		fullPath := filepath.Join(modInfo.Path(), cleanPath)
 
-		log.Printf("Output file: %s\n", fullPath)
+		log.Printf("buffering output for %q\n", fullPath)
 
-		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
-			log.Fatalf("error creating modlet directory %s: %v", filepath.Dir(fullPath), err)
+		if err := mkPath(filepath.Dir(fullPath)); err != nil {
+			log.Fatal(err)
 		}
 
 		f, err := os.Create(fullPath)
@@ -90,50 +171,34 @@ func BuildModlet(templates []string, gamedir string, outdir string) error {
 			log.Fatalf("error creating output file %s: %v", fullPath, err)
 		}
 
-		bufmap[fullPath] = Buffer{
-			buffer: &bytes.Buffer{},
+		gBuffer.Reset()
+
+		fBufMap[fullPath] = fileBuffer{
+			buffer: bytes.NewBuffer(nil),
 			writer: f,
 		}
-		bufmap[fullPath].buffer.Write(buffer.Bytes())
-		buffer.Reset()
+		*fBuffer = fBufMap[fullPath]
 
-		return ""
+		outputFound = true
+
+		return null("")
 	}
+}
 
-	log.Printf("Processing template: %s\n", templateFile)
-
-	t, err := template.New(templateFile).
-		Funcs(template.FuncMap{
-			"modlet":    modlet,
-			"start":     start,
-			"writeTo":   writeTo,
-			"xmlHeader": func() string { return xml.Header },
-		}).
-		ParseFiles(templates...)
-	if err != nil {
-		return fmt.Errorf("error parsing template %s: %w", templateFile, err)
-	}
-
-	log.Printf("Executing %s\n", templateFile)
-	if err := t.ExecuteTemplate(buffer, templateFile, nil); err != nil {
-		return fmt.Errorf("error executing template %s: %w", templateFile, err)
-	}
-
-	for path, buffer := range bufmap {
-		log.Printf("Writing to %s\n", path)
-
-		if buffer.writer != nil {
-			defer func() {
-				if err := buffer.writer.Close(); err != nil {
-					log.Fatalf("error closing output file: %v", err)
-				}
-			}()
-
-			if _, err := buffer.buffer.WriteTo(buffer.writer); err != nil {
-				return fmt.Errorf("error writing to output file %s: %w", path, err)
-			}
+func writeFunc(fBuffer *fileBuffer, gBuffer *bytes.Buffer) func() null {
+	return func() null {
+		if !outputFound || (*fBuffer).writer == nil {
+			log.Fatal("you've called `write` without providing an output file, please use `output <filepath>` before `write`")
 		}
-	}
 
-	return nil
+		log.Println("saving fileBuffer")
+
+		// Copy the current buffer to the output buffer
+		(*fBuffer).buffer.Write(gBuffer.Bytes())
+
+		// Reset the output state
+		outputFound = false
+
+		return null("")
+	}
 }
