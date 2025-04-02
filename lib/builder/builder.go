@@ -1,3 +1,16 @@
+/*
+Copyright © 2025 Donovan C. Young <dyoung522@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+*/
 package builder
 
 import (
@@ -6,25 +19,27 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
+	"github.com/spf13/afero"
 )
 
-type fileBuffer struct {
-	buffer *bytes.Buffer
-	writer io.WriteCloser
+// FS is the filesystem interface used for file operations
+var FS = &afero.Afero{Fs: afero.NewOsFs()}
+
+type FileBuffer struct {
+	Buffer *bytes.Buffer
+	Writer io.WriteCloser
 }
 
 type null string // we use this when we need to output nothing
 
 // Holds buffers and io.WriteCloser for each output file
-type fileBufferMap map[string]fileBuffer
+type FileBufferMap map[string]FileBuffer
 
 // Used to track output/write state
 var outputFound bool
@@ -41,11 +56,11 @@ func BuildModlets(templates []string, gamedir string, outdir string) error {
 func BuildModlet(tmpl string, gamedir string, outdir string) error {
 	var modInfo modinfo.ModInfo
 
-	fBufMap := make(fileBufferMap)
+	fBufMap := make(FileBufferMap)
 	gBuffer := bytes.NewBuffer(nil)
-	fBuffer := &fileBuffer{
-		buffer: gBuffer,
-		writer: nil,
+	fBuffer := &FileBuffer{
+		Buffer: gBuffer,
+		Writer: nil,
 	}
 
 	if strings.TrimSpace(tmpl) == "" {
@@ -67,9 +82,9 @@ func BuildModlet(tmpl string, gamedir string, outdir string) error {
 
 	t, err := template.New(templateName).
 		Funcs(template.FuncMap{
-			"modlet":    modletFunc(outdir, &modInfo),
-			"output":    outputFunc(fBuffer, gBuffer, fBufMap, &modInfo),
-			"write":     writeFunc(fBuffer, gBuffer),
+			"modlet":    FuncModlet(FuncArgs{Outdir: outdir, ModInfo: &modInfo}),
+			"output":    FuncOutput(FuncArgs{FBuffer: fBuffer, GBuffer: gBuffer, FBufMap: fBufMap, ModInfo: &modInfo}),
+			"write":     FuncWrite(FuncArgs{FBuffer: fBuffer, GBuffer: gBuffer}),
 			"xmlHeader": func() string { return xml.Header },
 		}).
 		ParseFiles(tmpl)
@@ -91,114 +106,20 @@ func BuildModlet(tmpl string, gamedir string, outdir string) error {
 	return nil
 }
 
-func mkPath(path string) error {
-	if !fs.ValidPath(path) {
-		return fmt.Errorf("invalid path %q", path)
-	}
-
-	_, err := os.Stat(path)
-	if errors.Is(err, fs.ErrNotExist) {
-		log.Printf("creating directory: %q", path)
-
-		if err := os.MkdirAll(path, 0755); err != nil {
-			return fmt.Errorf("unable to create directory %q: %w", path, err)
-		}
-	}
-
-	return nil
-}
-
-func writeBuf(path string, fBuffer fileBuffer) error {
+func writeBuf(path string, fBuffer FileBuffer) error {
 	log.Printf("writing %q\n", path)
 
-	if fBuffer.writer != nil {
+	if fBuffer.Writer != nil {
 		defer func() {
-			if err := fBuffer.writer.Close(); err != nil {
+			if err := fBuffer.Writer.Close(); err != nil {
 				log.Fatalf("error closing output file: %v", err)
 			}
 		}()
 
-		if _, err := fBuffer.buffer.WriteTo(fBuffer.writer); err != nil {
+		if _, err := fBuffer.Buffer.WriteTo(fBuffer.Writer); err != nil {
 			return fmt.Errorf("error writing to output file %s: %w", path, err)
 		}
 	}
 
 	return nil
-}
-
-func modletFunc(outdir string, modInfo *modinfo.ModInfo) func(string) null {
-	return func(name string) null {
-		if name == "" {
-			log.Fatal("modlet name must be provided")
-		}
-
-		path := filepath.Join(outdir, name)
-
-		*modInfo = *modinfo.NewModInfo(name)
-		modInfo.SetPath(path)
-
-		if err := mkPath(modInfo.Path()); err != nil {
-			log.Fatal(err)
-		}
-
-		log.Printf("creating modlet %q\n", modInfo.GetValue("name"))
-
-		return null("")
-	}
-}
-
-func outputFunc(fBuffer *fileBuffer, gBuffer *bytes.Buffer, fBufMap fileBufferMap, modInfo *modinfo.ModInfo) func(string) null {
-	return func(path string) null {
-		if path == "" {
-			log.Fatal("output file not provided")
-		}
-
-		if modInfo.Path() == "" {
-			log.Fatal("please set the modlet using {{ modlet <name> }}")
-		}
-
-		cleanPath := filepath.Clean(path)
-		fullPath := filepath.Join(modInfo.Path(), cleanPath)
-
-		log.Printf("buffering output for %q\n", fullPath)
-
-		if err := mkPath(filepath.Dir(fullPath)); err != nil {
-			log.Fatal(err)
-		}
-
-		f, err := os.Create(fullPath)
-		if err != nil {
-			log.Fatalf("error creating output file %s: %v", fullPath, err)
-		}
-
-		gBuffer.Reset()
-
-		fBufMap[fullPath] = fileBuffer{
-			buffer: bytes.NewBuffer(nil),
-			writer: f,
-		}
-		*fBuffer = fBufMap[fullPath]
-
-		outputFound = true
-
-		return null("")
-	}
-}
-
-func writeFunc(fBuffer *fileBuffer, gBuffer *bytes.Buffer) func() null {
-	return func() null {
-		if !outputFound || (*fBuffer).writer == nil {
-			log.Fatal("you've called `write` without providing an output file, please use `output <filepath>` before `write`")
-		}
-
-		log.Println("saving fileBuffer")
-
-		// Copy the current buffer to the output buffer
-		(*fBuffer).buffer.Write(gBuffer.Bytes())
-
-		// Reset the output state
-		outputFound = false
-
-		return null("")
-	}
 }
