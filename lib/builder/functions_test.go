@@ -10,7 +10,7 @@ import (
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
 	"github.com/donovanmods/7dtd-modtools/lib/builder"
 	"github.com/spf13/afero"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/assert"
 )
 
 type nopIO struct {
@@ -22,6 +22,7 @@ func (nopIO) Close() error { return nil }
 
 func NewNopIO(t *testing.T, buf *bytes.Buffer) io.WriteCloser {
 	t.Helper()
+
 	return nopIO{buf, buf}
 }
 
@@ -30,7 +31,7 @@ var (
 	FS      = &afero.Afero{Fs: afero.NewMemMapFs()}
 )
 
-func mkTempDir(t *testing.T) {
+func mkTempDir(t *testing.T) string {
 	t.Helper()
 
 	if exists, err := afero.DirExists(FS, testTMP); err != nil {
@@ -42,21 +43,25 @@ func mkTempDir(t *testing.T) {
 		}
 		log.Printf("Created temp directory: %s", testTMP)
 	}
+
+	return testTMP
 }
 
-type FunctionsTestSuite struct {
-	suite.Suite
-}
+func setup(t *testing.T) *assert.Assertions {
+	t.Helper()
 
-func (suite *FunctionsTestSuite) SetupSuite() {
-	log.Printf("setting up test using %s", testTMP)
+	log.Print("running setup")
 
 	builder.FS = FS
 
-	mkTempDir(suite.T())
+	mkTempDir(t)
+
+	return assert.New(t)
 }
 
-func (suite *FunctionsTestSuite) TestFuncModlet() {
+func TestFuncModlet(t *testing.T) {
+	assert := setup(t)
+
 	funcArgs := builder.FuncArgs{
 		Outdir:  testTMP,
 		ModInfo: &modinfo.ModInfo{},
@@ -67,23 +72,23 @@ func (suite *FunctionsTestSuite) TestFuncModlet() {
 
 	fn(modletName)
 
-	suite.Equal(modletName, funcArgs.ModInfo.GetValue("name"))
-	suite.Equal(filepath.Join(funcArgs.Outdir, modletName), funcArgs.ModInfo.Path())
+	assert.Equal(modletName, funcArgs.ModInfo.GetValue("name"))
+	assert.Equal(filepath.Join(funcArgs.Outdir, modletName), funcArgs.ModInfo.Path())
+
 	exists, err := FS.DirExists(funcArgs.ModInfo.Path())
-	suite.NoError(err, "Error checking for Modlet directory")
-	suite.Assert().True(exists, "Modlet directory should exist")
+	assert.NoError(err, "Error checking for Modlet directory")
+	assert.True(exists, "Modlet directory should exist")
 }
 
-func (suite *FunctionsTestSuite) TestFuncOutput() {
-	bufIO := bytes.NewBuffer(nil)
+func TestFuncOutput(t *testing.T) {
+	assert := setup(t)
+
 	funcArgs := builder.FuncArgs{
-		Outdir:        testTMP,
-		ModInfo:       &modinfo.ModInfo{},
-		FBuffer:       &builder.FileBuffer{},
-		GBuffer:       bytes.NewBuffer(nil),
-		FBufMap:       make(builder.FileBufferMap),
-		IoReader:      bufIO,
-		IoWriteCloser: NewNopIO(suite.T(), bufIO),
+		Outdir:  testTMP,
+		ModInfo: &modinfo.ModInfo{},
+		FBuffer: &builder.FileBuffer{},
+		GBuffer: bytes.NewBuffer(nil),
+		FBufMap: make(builder.FileBufferMap),
 	}
 
 	funcArgs.ModInfo.SetPath(funcArgs.Outdir)
@@ -94,17 +99,20 @@ func (suite *FunctionsTestSuite) TestFuncOutput() {
 	fn(outputPath)
 
 	fullPath := filepath.Join(funcArgs.Outdir, outputPath)
-	suite.Contains(funcArgs.FBufMap, fullPath, "File buffer map should contain the output path")
+	assert.Contains(funcArgs.FBufMap, fullPath, "File buffer map should contain the output path")
+
 	exists, err := FS.Exists(funcArgs.ModInfo.Path())
-	suite.NoError(err, "Error checking for output file")
-	suite.Assert().True(exists, "Output file should exist")
+	assert.NoError(err, "Error checking for output file")
+	assert.True(exists, "Output file should exist")
 }
 
-func (suite *FunctionsTestSuite) TestFuncWrite() {
+func TestFuncWrite(t *testing.T) {
+	assert := setup(t)
+
 	funcArgs := builder.FuncArgs{
 		FBuffer: &builder.FileBuffer{
 			Buffer: bytes.NewBuffer(nil),
-			Writer: NewNopIO(suite.T(), bytes.NewBuffer(nil)), // Using stdout for testing
+			Writer: NewNopIO(t, bytes.NewBuffer(nil)), // Using stdout for testing
 		},
 		GBuffer: bytes.NewBufferString("Test content"),
 	}
@@ -112,11 +120,5 @@ func (suite *FunctionsTestSuite) TestFuncWrite() {
 	fn := builder.FuncWrite(funcArgs)
 	fn()
 
-	suite.Equal("Test content", funcArgs.FBuffer.Buffer.String(), "Buffer content should match")
-}
-
-// In order for 'go test' to run this suite, we need to create
-// a normal test function and pass our suite to suite.Run
-func TestFunctionRunSuite(t *testing.T) {
-	suite.Run(t, new(FunctionsTestSuite))
+	assert.Equal("Test content", funcArgs.FBuffer.Buffer.String(), "Buffer content should match")
 }
