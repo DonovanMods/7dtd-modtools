@@ -21,6 +21,7 @@ import (
 	"io/fs"
 	"log"
 	"path/filepath"
+	"strings"
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
 )
@@ -67,6 +68,8 @@ func mkPath(path string) error {
 // func FuncModlet(outdir string, modInfo *modinfo.ModInfo) func(string) null {
 func FuncModlet(args FuncArgs) func(string) null {
 	return func(name string) null {
+		name = strings.TrimSpace(name)
+
 		if name == "" {
 			log.Fatal("modlet name must be provided")
 		}
@@ -90,10 +93,7 @@ func FuncModlet(args FuncArgs) func(string) null {
 // func FuncOutput(fBuffer *fileBuffer, gBuffer *bytes.Buffer, fBufMap fileBufferMap, modInfo *modinfo.ModInfo) func(string) null {
 func FuncOutput(args FuncArgs) func(string) null {
 	return func(path string) null {
-		var (
-			err error
-			f   io.WriteCloser
-		)
+		path = strings.TrimSpace(path)
 
 		if path == "" {
 			log.Fatal("output file not provided")
@@ -112,7 +112,7 @@ func FuncOutput(args FuncArgs) func(string) null {
 			log.Fatal(err)
 		}
 
-		f, err = FS.Create(fullPath)
+		f, err := FS.Create(fullPath)
 		if err != nil {
 			log.Fatalf("error creating output file %s: %v", fullPath, err)
 		}

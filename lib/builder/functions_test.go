@@ -13,6 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	testTMP = "test_temp"
+	FS      = &afero.Afero{Fs: afero.NewMemMapFs()}
+)
+
 type nopIO struct {
 	io.Reader
 	io.Writer
@@ -25,11 +30,6 @@ func NewNopIO(t *testing.T, buf *bytes.Buffer) io.WriteCloser {
 
 	return nopIO{buf, buf}
 }
-
-var (
-	testTMP = "test_temp"
-	FS      = &afero.Afero{Fs: afero.NewMemMapFs()}
-)
 
 func mkTempDir(t *testing.T) string {
 	t.Helper()
@@ -52,6 +52,7 @@ func setup(t *testing.T) *assert.Assertions {
 
 	log.Print("running setup")
 
+	// Use MemMapFs for testing
 	builder.FS = FS
 
 	mkTempDir(t)
@@ -109,10 +110,12 @@ func TestFuncOutput(t *testing.T) {
 func TestFuncWrite(t *testing.T) {
 	assert := setup(t)
 
+	buf := bytes.NewBuffer(nil)
+
 	funcArgs := builder.FuncArgs{
 		FBuffer: &builder.FileBuffer{
-			Buffer: bytes.NewBuffer(nil),
-			Writer: NewNopIO(t, bytes.NewBuffer(nil)), // Using stdout for testing
+			Buffer: buf,
+			Writer: NewNopIO(t, buf), // Using stdout for testing
 		},
 		GBuffer: bytes.NewBufferString("Test content"),
 	}
