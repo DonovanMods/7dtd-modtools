@@ -80,11 +80,14 @@ func BuildModlet(tmpl string, gamedir string, outdir string) error {
 
 	log.Printf("processing template: %s\n", templateName)
 
+	fargs := FuncArgs{outdir, gamedir, &modInfo, fBuffer, gBuffer, fBufMap}
 	t, err := template.New(templateName).
 		Funcs(template.FuncMap{
-			"modlet":    FuncModlet(FuncArgs{Outdir: outdir, ModInfo: &modInfo}),
-			"output":    FuncOutput(FuncArgs{FBuffer: fBuffer, GBuffer: gBuffer, FBufMap: fBufMap, ModInfo: &modInfo}),
-			"write":     FuncWrite(FuncArgs{FBuffer: fBuffer, GBuffer: gBuffer}),
+			"modlet":    FuncModlet(fargs),
+			"output":    FuncOutput(fargs),
+			"set":       FuncSet(fargs),
+			"write":     FuncWrite(fargs),
+			"mult":      FuncMult(fargs),
 			"xmlHeader": func() string { return xml.Header },
 		}).
 		ParseFiles(tmpl)

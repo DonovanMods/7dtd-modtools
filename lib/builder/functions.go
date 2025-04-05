@@ -15,15 +15,17 @@ package builder
 
 import (
 	"bytes"
+	"encoding/xml"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"log"
 	"path/filepath"
 	"strings"
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
+	"github.com/donovanmods/7dtd-gamedata/modlet"
+	"github.com/donovanmods/7dtd-gamedata/xmltools"
 )
 
 /*
@@ -31,15 +33,12 @@ import (
 */
 
 type FuncArgs struct {
-	Outdir        string
-	Gamedir       string
-	Templates     []string
-	ModInfo       *modinfo.ModInfo
-	FBuffer       *FileBuffer
-	GBuffer       *bytes.Buffer
-	FBufMap       FileBufferMap
-	IoReader      io.Reader
-	IoWriteCloser io.WriteCloser
+	Outdir  string
+	Gamedir string
+	ModInfo *modinfo.ModInfo
+	FBuffer *FileBuffer
+	GBuffer *bytes.Buffer
+	FBufMap FileBufferMap
 }
 
 // Helper function to create a directory if it doesn't exist
@@ -66,7 +65,7 @@ func mkPath(path string) error {
 
 // modlet sets up the modlet name and path
 // func FuncModlet(outdir string, modInfo *modinfo.ModInfo) func(string) null {
-func FuncModlet(args FuncArgs) func(string) null {
+func FuncModlet(fargs FuncArgs) func(string) null {
 	return func(name string) null {
 		name = strings.TrimSpace(name)
 
@@ -74,24 +73,30 @@ func FuncModlet(args FuncArgs) func(string) null {
 			log.Fatal("modlet name must be provided")
 		}
 
-		path := filepath.Join(args.Outdir, name)
+		path := filepath.Join(fargs.Outdir, name)
 
-		*args.ModInfo = *modinfo.NewModInfo(name)
-		args.ModInfo.SetPath(path)
+		*fargs.ModInfo = *modinfo.NewModInfo(name)
+		fargs.ModInfo.SetPath(path)
 
-		if err := mkPath(args.ModInfo.Path()); err != nil {
+		if err := mkPath(fargs.ModInfo.Path()); err != nil {
 			log.Fatal(err)
 		}
 
-		log.Printf("creating modlet %q\n", args.ModInfo.GetValue("name"))
+		log.Printf("creating modlet %q\n", fargs.ModInfo.GetValue("name"))
 
 		return null("")
 	}
 }
 
+func FuncMult(fargs FuncArgs) func(string, ...string) string {
+	return func(string, ...string) string {
+		return ""
+	}
+}
+
 // output sets up the output file and creates a uniq buffer
 // func FuncOutput(fBuffer *fileBuffer, gBuffer *bytes.Buffer, fBufMap fileBufferMap, modInfo *modinfo.ModInfo) func(string) null {
-func FuncOutput(args FuncArgs) func(string) null {
+func FuncOutput(fargs FuncArgs) func(string) null {
 	return func(path string) null {
 		path = strings.TrimSpace(path)
 
@@ -99,12 +104,12 @@ func FuncOutput(args FuncArgs) func(string) null {
 			log.Fatal("output file not provided")
 		}
 
-		if args.ModInfo.Path() == "" {
+		if fargs.ModInfo.Path() == "" {
 			log.Fatal("please set the modlet using {{ modlet <name> }}")
 		}
 
 		cleanPath := filepath.Clean(path)
-		fullPath := filepath.Join(args.ModInfo.Path(), cleanPath)
+		fullPath := filepath.Join(fargs.ModInfo.Path(), cleanPath)
 
 		log.Printf("buffering output for %q\n", fullPath)
 
@@ -117,13 +122,13 @@ func FuncOutput(args FuncArgs) func(string) null {
 			log.Fatalf("error creating output file %s: %v", fullPath, err)
 		}
 
-		args.GBuffer.Reset()
+		fargs.GBuffer.Reset()
 
-		args.FBufMap[fullPath] = FileBuffer{
+		fargs.FBufMap[fullPath] = FileBuffer{
 			Buffer: bytes.NewBuffer(nil),
 			Writer: f,
 		}
-		*args.FBuffer = args.FBufMap[fullPath]
+		*fargs.FBuffer = fargs.FBufMap[fullPath]
 
 		outputFound = true
 
@@ -131,22 +136,56 @@ func FuncOutput(args FuncArgs) func(string) null {
 	}
 }
 
+// set produces a Set modlet instruction with the given xpath and value
+func FuncSet(fargs FuncArgs) func(string, string) string {
+	return mkSet
+}
+
 // write writes the contents of the buffer to the output file
 // func FuncWrite(fBuffer *fileBuffer, gBuffer *bytes.Buffer) func() null {
-func FuncWrite(args FuncArgs) func() null {
+func FuncWrite(fargs FuncArgs) func() null {
 	return func() null {
-		if !outputFound || (*args.FBuffer).Writer == nil {
+		if !outputFound || (*fargs.FBuffer).Writer == nil {
 			log.Fatal("you've called `write` without providing an output file, please use `output <filepath>` before `write`")
 		}
 
 		log.Println("saving fileBuffer")
 
 		// Copy the current buffer to the output buffer
-		(*args.FBuffer).Buffer.Write(args.GBuffer.Bytes())
+		(*fargs.FBuffer).Buffer.Write(fargs.GBuffer.Bytes())
 
 		// Reset the output state
 		outputFound = false
 
 		return null("")
 	}
+}
+
+/*
+// Helper functions
+*/
+
+// mkSet creates a Set modlet instruction with the given xpath and value
+func mkSet(xpath, value string) string {
+	xpath = strings.TrimSpace(xpath)
+	value = strings.TrimSpace(value)
+
+	if xpath == "" || value == "" {
+		log.Fatal("xpath and value must be provided")
+	}
+
+	log.Printf("creating set modlet for xpath %q with value %q\n", xpath, value)
+
+	modlet := modlet.Modlet{
+		XMLName: xml.Name{Local: "set"},
+		XPath:   xpath,
+		Value:   value,
+	}
+
+	set, err := xml.Marshal(modlet)
+	if err != nil {
+		log.Fatalf("error marshalling modlet: %v", err)
+	}
+
+	return string(xmltools.UnescapeXML(set))
 }

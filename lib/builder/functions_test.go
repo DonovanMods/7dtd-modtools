@@ -2,6 +2,7 @@ package builder_test
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"path/filepath"
@@ -105,6 +106,24 @@ func TestFuncOutput(t *testing.T) {
 	exists, err := FS.Exists(funcArgs.ModInfo.Path())
 	assert.NoError(err, "Error checking for output file")
 	assert.True(exists, "Output file should exist")
+}
+
+func TestFuncSet(t *testing.T) {
+	assert := setup(t)
+
+	funcArgs := builder.FuncArgs{
+		ModInfo: &modinfo.ModInfo{},
+	}
+
+	fn := builder.FuncSet(funcArgs)
+
+	xpath := `//block[@name='terrStone']/drop[@event='Harvest' and @name='resourceRockSmall']/@count`
+	value := "999"
+
+	expected := fmt.Sprintf("<set xpath=\"%s\">%s</set>", xpath, value)
+	actual := fn(xpath, value)
+
+	assert.Equal(expected, actual, "FuncSet should return the correct XML string")
 }
 
 func TestFuncWrite(t *testing.T) {
