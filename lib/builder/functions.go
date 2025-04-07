@@ -15,22 +15,31 @@ package builder
 
 import (
 	"bytes"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"io/fs"
 	"log"
 	"path/filepath"
+	"regexp"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
 	"github.com/donovanmods/7dtd-gamedata/modlet"
-	"github.com/donovanmods/7dtd-gamedata/xmltools"
 )
 
 /*
 // Helper functions
 */
+
+const (
+	By  = "by"
+	Min = "min"
+	Max = "max"
+)
+
+var validArgs = []string{By, Min, Max}
 
 type FuncArgs struct {
 	Outdir  string
@@ -41,31 +50,13 @@ type FuncArgs struct {
 	FBufMap FileBufferMap
 }
 
-// Helper function to create a directory if it doesn't exist
-func mkPath(path string) error {
-	if !fs.ValidPath(path) {
-		return fmt.Errorf("invalid path %q", path)
-	}
-
-	_, err := FS.Stat(path)
-	if errors.Is(err, fs.ErrNotExist) {
-		log.Printf("creating directory: %q", path)
-
-		if err := FS.MkdirAll(path, 0755); err != nil {
-			return fmt.Errorf("unable to create directory %q: %w", path, err)
-		}
-	}
-
-	return nil
-}
-
 /*
 // Functions for building modlets
 */
 
 // modlet sets up the modlet name and path
 // func FuncModlet(outdir string, modInfo *modinfo.ModInfo) func(string) null {
-func FuncModlet(fargs FuncArgs) func(string) null {
+func ModletFunc(fargs FuncArgs) func(string) null {
 	return func(name string) null {
 		name = strings.TrimSpace(name)
 
@@ -88,15 +79,38 @@ func FuncModlet(fargs FuncArgs) func(string) null {
 	}
 }
 
-func FuncMult(fargs FuncArgs) func(string, ...string) string {
-	return func(string, ...string) string {
-		return ""
+func MultFunc(fargs FuncArgs) func(string, ...string) string {
+	return func(xpath string, args ...string) string {
+		var multiplier float64
+		var err error
+
+		xpath = strings.TrimSpace(xpath)
+		if xpath == "" {
+			log.Fatal("xpath must be provided to the mult command")
+		}
+
+		pargs := ParseArgs(args)
+		if len(pargs) == 0 {
+			log.Fatal("mult requires additional argument (by= at least)")
+		}
+
+		if by, ok := pargs["by"]; ok {
+			if !ok || by == "" {
+				log.Fatal("mult requires a valid by= argument")
+			}
+
+			if multiplier, err = strconv.ParseFloat(by, 64); err != nil {
+				log.Fatalf("error parsing multiplier %q: %v", by, err)
+			}
+		}
+
+		return must(modlet.MkSet(xpath, strconv.FormatFloat(multiplier, 'f', -1, 64)))
 	}
 }
 
 // output sets up the output file and creates a uniq buffer
 // func FuncOutput(fBuffer *fileBuffer, gBuffer *bytes.Buffer, fBufMap fileBufferMap, modInfo *modinfo.ModInfo) func(string) null {
-func FuncOutput(fargs FuncArgs) func(string) null {
+func OutputFunc(fargs FuncArgs) func(string) null {
 	return func(path string) null {
 		path = strings.TrimSpace(path)
 
@@ -137,13 +151,15 @@ func FuncOutput(fargs FuncArgs) func(string) null {
 }
 
 // set produces a Set modlet instruction with the given xpath and value
-func FuncSet(fargs FuncArgs) func(string, string) string {
-	return mkSet
+func SetFunc(fargs FuncArgs) func(string, string) string {
+	return func(xpath string, value string) string {
+		return must(modlet.MkSet(xpath, value))
+	}
 }
 
 // write writes the contents of the buffer to the output file
 // func FuncWrite(fBuffer *fileBuffer, gBuffer *bytes.Buffer) func() null {
-func FuncWrite(fargs FuncArgs) func() null {
+func WriteFunc(fargs FuncArgs) func() null {
 	return func() null {
 		if !outputFound || (*fargs.FBuffer).Writer == nil {
 			log.Fatal("you've called `write` without providing an output file, please use `output <filepath>` before `write`")
@@ -165,27 +181,57 @@ func FuncWrite(fargs FuncArgs) func() null {
 // Helper functions
 */
 
-// mkSet creates a Set modlet instruction with the given xpath and value
-func mkSet(xpath, value string) string {
-	xpath = strings.TrimSpace(xpath)
-	value = strings.TrimSpace(value)
+func ParseArgs(args []string) map[string]string {
+	pargs := make(map[string]string, len(args))
 
-	if xpath == "" || value == "" {
-		log.Fatal("xpath and value must be provided")
+	re := regexp.MustCompile(`(?P<key>[^=]+)=(?P<value>.+)`)
+
+	for _, arg := range args {
+		if !re.MatchString(arg) {
+			log.Fatalf("invalid argument format: %q", arg)
+		}
+
+		matches := re.FindStringSubmatch(arg)
+		if len(matches) != 3 {
+			log.Fatalf("invalid argument format: %q", arg)
+		}
+
+		key := strings.TrimSpace(matches[1])
+		value := strings.TrimSpace(matches[2])
+
+		if key == "" || value == "" || !slices.Contains(validArgs, key) {
+			log.Fatalf("invalid argument: %q", arg)
+		}
+
+		pargs[key] = value
 	}
 
-	log.Printf("creating set modlet for xpath %q with value %q\n", xpath, value)
+	return pargs
+}
 
-	modlet := modlet.Modlet{
-		XMLName: xml.Name{Local: "set"},
-		XPath:   xpath,
-		Value:   value,
-	}
-
-	set, err := xml.Marshal(modlet)
+// must is a helper function to handle errors
+func must(output string, err error) string {
 	if err != nil {
-		log.Fatalf("error marshalling modlet: %v", err)
+		log.Fatalf("error creating function: %v", err)
 	}
 
-	return string(xmltools.UnescapeXML(set))
+	return output
+}
+
+// Helper function to create a directory if it doesn't exist
+func mkPath(path string) error {
+	if !fs.ValidPath(path) {
+		return fmt.Errorf("invalid path %q", path)
+	}
+
+	_, err := FS.Stat(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		log.Printf("creating directory: %q", path)
+
+		if err := FS.MkdirAll(path, 0755); err != nil {
+			return fmt.Errorf("unable to create directory %q: %w", path, err)
+		}
+	}
+
+	return nil
 }

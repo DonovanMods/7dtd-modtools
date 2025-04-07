@@ -15,7 +15,7 @@
 {{- output "Config/blocks.xml" -}}
 <configs>
   {{ set "//block[@name='terrStone']/drop[@event='Harvest' and @name='resourceRockSmall']/@count" "165" }}
-  {{ mult "//block[starts_with(name, 'terr')]/drop[@event='Harvest' and @name='resourceRockSmall']/@count" "1.5" }}
+  {{ mult "//block[starts_with(name, 'terr')]/drop[@event='Harvest' and @name='resourceRockSmall']/@count" "by=1.5" "min=1" }}
   <!-- BLOCKS -->
   <blocks>
     <block name="exampleBlock" type="exampleBlock" />

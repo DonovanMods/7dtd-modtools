@@ -61,7 +61,7 @@ func setup(t *testing.T) *assert.Assertions {
 	return assert.New(t)
 }
 
-func TestFuncModlet(t *testing.T) {
+func TestModletFunc(t *testing.T) {
 	assert := setup(t)
 
 	funcArgs := builder.FuncArgs{
@@ -69,7 +69,7 @@ func TestFuncModlet(t *testing.T) {
 		ModInfo: &modinfo.ModInfo{},
 	}
 
-	fn := builder.FuncModlet(funcArgs)
+	fn := builder.ModletFunc(funcArgs)
 	modletName := "TestModlet"
 
 	fn(modletName)
@@ -82,7 +82,7 @@ func TestFuncModlet(t *testing.T) {
 	assert.True(exists, "Modlet directory should exist")
 }
 
-func TestFuncOutput(t *testing.T) {
+func TestOutputFunc(t *testing.T) {
 	assert := setup(t)
 
 	funcArgs := builder.FuncArgs{
@@ -95,7 +95,7 @@ func TestFuncOutput(t *testing.T) {
 
 	funcArgs.ModInfo.SetPath(funcArgs.Outdir)
 
-	fn := builder.FuncOutput(funcArgs)
+	fn := builder.OutputFunc(funcArgs)
 	outputPath := "testfile.txt"
 
 	fn(outputPath)
@@ -108,14 +108,14 @@ func TestFuncOutput(t *testing.T) {
 	assert.True(exists, "Output file should exist")
 }
 
-func TestFuncSet(t *testing.T) {
+func TestSetFunc(t *testing.T) {
 	assert := setup(t)
 
 	funcArgs := builder.FuncArgs{
 		ModInfo: &modinfo.ModInfo{},
 	}
 
-	fn := builder.FuncSet(funcArgs)
+	fn := builder.SetFunc(funcArgs)
 
 	xpath := `//block[@name='terrStone']/drop[@event='Harvest' and @name='resourceRockSmall']/@count`
 	value := "999"
@@ -126,7 +126,7 @@ func TestFuncSet(t *testing.T) {
 	assert.Equal(expected, actual, "FuncSet should return the correct XML string")
 }
 
-func TestFuncWrite(t *testing.T) {
+func TestWriteFunc(t *testing.T) {
 	assert := setup(t)
 
 	buf := bytes.NewBuffer(nil)
@@ -139,8 +139,35 @@ func TestFuncWrite(t *testing.T) {
 		GBuffer: bytes.NewBufferString("Test content"),
 	}
 
-	fn := builder.FuncWrite(funcArgs)
+	fn := builder.WriteFunc(funcArgs)
 	fn()
 
 	assert.Equal("Test content", funcArgs.FBuffer.Buffer.String(), "Buffer content should match")
+}
+
+func TestParseArgs(t *testing.T) {
+	assert := setup(t)
+
+	inputs := []struct {
+		Args     []string
+		expected map[string]string
+	}{
+		{
+			Args: []string{"by=2.25", "min=4", "max=25"},
+			expected: map[string]string{
+				"by":  "2.25",
+				"max": "25",
+				"min": "4",
+			},
+		},
+		{
+			Args:     []string{},
+			expected: map[string]string{},
+		},
+	}
+
+	for _, input := range inputs {
+		actual := builder.ParseArgs(input.Args)
+		assert.Equal(input.expected, actual, "ParseArgs should return the correct string")
+	}
 }
