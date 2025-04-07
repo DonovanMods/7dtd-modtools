@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"path/filepath"
 	"testing"
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
 	"github.com/donovanmods/7dtd-modtools/lib/builder"
+	"github.com/donovanmods/7dtd-modtools/lib/logger"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,7 +42,7 @@ func mkTempDir(t *testing.T) string {
 		if err != nil {
 			t.Fatal(err)
 		}
-		log.Printf("Created temp directory: %s", testTMP)
+		logger.Info("Created temp directory: %s", testTMP)
 	}
 
 	return testTMP
@@ -51,7 +51,7 @@ func mkTempDir(t *testing.T) string {
 func setup(t *testing.T) *assert.Assertions {
 	t.Helper()
 
-	log.Print("running setup")
+	logger.Info("running setup")
 
 	// Use MemMapFs for testing
 	builder.FS = FS

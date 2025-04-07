@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -27,6 +26,7 @@ import (
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
 	"github.com/donovanmods/7dtd-gamedata/modlet"
+	"github.com/donovanmods/7dtd-modtools/lib/logger"
 )
 
 /*
@@ -61,7 +61,7 @@ func ModletFunc(fargs FuncArgs) func(string) null {
 		name = strings.TrimSpace(name)
 
 		if name == "" {
-			log.Fatal("modlet name must be provided")
+			logger.Fatal("modlet name must be provided")
 		}
 
 		path := filepath.Join(fargs.Outdir, name)
@@ -70,10 +70,10 @@ func ModletFunc(fargs FuncArgs) func(string) null {
 		fargs.ModInfo.SetPath(path)
 
 		if err := mkPath(fargs.ModInfo.Path()); err != nil {
-			log.Fatal(err)
+			logger.Panic(err)
 		}
 
-		log.Printf("creating modlet %q\n", fargs.ModInfo.GetValue("name"))
+		logger.Info("creating modlet %q", fargs.ModInfo.GetValue("name"))
 
 		return null("")
 	}
@@ -86,21 +86,21 @@ func MultFunc(fargs FuncArgs) func(string, ...string) string {
 
 		xpath = strings.TrimSpace(xpath)
 		if xpath == "" {
-			log.Fatal("xpath must be provided to the mult command")
+			logger.Fatal("xpath must be provided to the mult command")
 		}
 
 		pargs := ParseArgs(args)
 		if len(pargs) == 0 {
-			log.Fatal("mult requires additional argument (by= at least)")
+			logger.Fatal("mult requires additional argument (by= at least)")
 		}
 
 		if by, ok := pargs["by"]; ok {
 			if !ok || by == "" {
-				log.Fatal("mult requires a valid by= argument")
+				logger.Fatal("mult requires a valid by= argument")
 			}
 
 			if multiplier, err = strconv.ParseFloat(by, 64); err != nil {
-				log.Fatalf("error parsing multiplier %q: %v", by, err)
+				logger.Fatal("error parsing multiplier %q: %w", by, err)
 			}
 		}
 
@@ -115,25 +115,25 @@ func OutputFunc(fargs FuncArgs) func(string) null {
 		path = strings.TrimSpace(path)
 
 		if path == "" {
-			log.Fatal("output file not provided")
+			logger.Fatal("output file not provided")
 		}
 
 		if fargs.ModInfo.Path() == "" {
-			log.Fatal("please set the modlet using {{ modlet <name> }}")
+			logger.Fatal("please set the modlet using {{ modlet <name> }}")
 		}
 
 		cleanPath := filepath.Clean(path)
 		fullPath := filepath.Join(fargs.ModInfo.Path(), cleanPath)
 
-		log.Printf("buffering output for %q\n", fullPath)
+		logger.Info("buffering output for %q", fullPath)
 
 		if err := mkPath(filepath.Dir(fullPath)); err != nil {
-			log.Fatal(err)
+			logger.Panic(err)
 		}
 
 		f, err := FS.Create(fullPath)
 		if err != nil {
-			log.Fatalf("error creating output file %s: %v", fullPath, err)
+			logger.Fatal("error creating output file %s: %w", fullPath, err)
 		}
 
 		fargs.GBuffer.Reset()
@@ -162,10 +162,10 @@ func SetFunc(fargs FuncArgs) func(string, string) string {
 func WriteFunc(fargs FuncArgs) func() null {
 	return func() null {
 		if !outputFound || (*fargs.FBuffer).Writer == nil {
-			log.Fatal("you've called `write` without providing an output file, please use `output <filepath>` before `write`")
+			logger.Fatal("you've called `write` without providing an output file, please use `output <filepath>` before `write`")
 		}
 
-		log.Println("saving fileBuffer")
+		logger.Debug("saving fileBuffer")
 
 		// Copy the current buffer to the output buffer
 		(*fargs.FBuffer).Buffer.Write(fargs.GBuffer.Bytes())
@@ -188,19 +188,19 @@ func ParseArgs(args []string) map[string]string {
 
 	for _, arg := range args {
 		if !re.MatchString(arg) {
-			log.Fatalf("invalid argument format: %q", arg)
+			logger.Fatal("invalid argument format: %q", arg)
 		}
 
 		matches := re.FindStringSubmatch(arg)
 		if len(matches) != 3 {
-			log.Fatalf("invalid argument format: %q", arg)
+			logger.Fatal("invalid argument format: %q", arg)
 		}
 
 		key := strings.TrimSpace(matches[1])
 		value := strings.TrimSpace(matches[2])
 
 		if key == "" || value == "" || !slices.Contains(validArgs, key) {
-			log.Fatalf("invalid argument: %q", arg)
+			logger.Fatal("invalid argument: %q", arg)
 		}
 
 		pargs[key] = value
@@ -212,7 +212,7 @@ func ParseArgs(args []string) map[string]string {
 // must is a helper function to handle errors
 func must(output string, err error) string {
 	if err != nil {
-		log.Fatalf("error creating function: %v", err)
+		logger.Fatal("error creating function: %v", err)
 	}
 
 	return output
@@ -226,7 +226,7 @@ func mkPath(path string) error {
 
 	_, err := FS.Stat(path)
 	if errors.Is(err, fs.ErrNotExist) {
-		log.Printf("creating directory: %q", path)
+		logger.Info("creating directory: %q", path)
 
 		if err := FS.MkdirAll(path, 0755); err != nil {
 			return fmt.Errorf("unable to create directory %q: %w", path, err)

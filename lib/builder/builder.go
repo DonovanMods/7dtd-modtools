@@ -19,12 +19,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"path/filepath"
 	"strings"
 	"text/template"
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
+	"github.com/donovanmods/7dtd-modtools/lib/logger"
 	"github.com/spf13/afero"
 )
 
@@ -78,7 +78,7 @@ func BuildModlet(tmpl string, gamedir string, outdir string) error {
 	outdir = filepath.Clean(outdir)
 	templateName := filepath.Base(tmpl)
 
-	log.Printf("processing template: %s\n", templateName)
+	logger.Verbose("processing template: %s", templateName)
 
 	fargs := FuncArgs{outdir, gamedir, &modInfo, fBuffer, gBuffer, fBufMap}
 	t, err := template.New(templateName).
@@ -102,7 +102,7 @@ func BuildModlet(tmpl string, gamedir string, outdir string) error {
 	// Write our fBuffer to disk
 	for path, fBuffer := range fBufMap {
 		if err := writeBuf(path, fBuffer); err != nil {
-			log.Fatal(err)
+			logger.Panic(err)
 		}
 	}
 
@@ -110,12 +110,14 @@ func BuildModlet(tmpl string, gamedir string, outdir string) error {
 }
 
 func writeBuf(path string, fBuffer FileBuffer) error {
-	log.Printf("writing %q\n", path)
+	path = strings.TrimSpace(path)
+
+	logger.Info("writing %q", path)
 
 	if fBuffer.Writer != nil {
 		defer func() {
 			if err := fBuffer.Writer.Close(); err != nil {
-				log.Fatalf("error closing output file: %v", err)
+				logger.Fatal("error closing output file: %w", err)
 			}
 		}()
 

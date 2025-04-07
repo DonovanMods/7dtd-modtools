@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 
 	sub1 "github.com/donovanmods/7dtd-modtools/cmd/build"
+	"github.com/donovanmods/7dtd-modtools/lib/logger"
 	cc "github.com/ivanpirog/coloredcobra"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -35,6 +36,7 @@ var RootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		verbosity, _ := cmd.Flags().GetCount("verbose")
 		viper.Set("verbosity", verbosity)
+		logger.New(verbosity)
 	},
 }
 
