@@ -78,7 +78,7 @@ func BuildModlet(tmpl string, gamedir string, outdir string) error {
 	outdir = filepath.Clean(outdir)
 	templateName := filepath.Base(tmpl)
 
-	logger.Verbose("processing template: %s", templateName)
+	logger.Debug("processing template: %s", templateName)
 
 	fargs := FuncArgs{outdir, gamedir, &modInfo, fBuffer, gBuffer, fBufMap}
 	t, err := template.New(templateName).

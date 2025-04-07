@@ -125,7 +125,7 @@ func OutputFunc(fargs FuncArgs) func(string) null {
 		cleanPath := filepath.Clean(path)
 		fullPath := filepath.Join(fargs.ModInfo.Path(), cleanPath)
 
-		logger.Info("buffering output for %q", fullPath)
+		logger.Trace("buffering output for %q", fullPath)
 
 		if err := mkPath(filepath.Dir(fullPath)); err != nil {
 			logger.Panic(err)
@@ -165,7 +165,7 @@ func WriteFunc(fargs FuncArgs) func() null {
 			logger.Fatal("you've called `write` without providing an output file, please use `output <filepath>` before `write`")
 		}
 
-		logger.Debug("saving fileBuffer")
+		logger.Trace("saving fileBuffer")
 
 		// Copy the current buffer to the output buffer
 		(*fargs.FBuffer).Buffer.Write(fargs.GBuffer.Bytes())

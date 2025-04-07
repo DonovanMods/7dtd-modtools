@@ -34,9 +34,13 @@ var RootCmd = &cobra.Command{
 	Short:   "Tools used to create, modify, install, and validate 7 Days to Die Modlets",
 	Version: "0.1.2",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		noColor, _ := cmd.Flags().GetBool("noColor")
 		verbosity, _ := cmd.Flags().GetCount("verbose")
+
+		viper.Set("color", !noColor)
 		viper.Set("verbosity", verbosity)
-		logger.New(verbosity)
+
+		logger.SetLogger(verbosity)
 	},
 }
 
@@ -60,20 +64,16 @@ func Execute() {
 }
 
 func init() {
-	// var Verbose int
-	var err error
-
 	cobra.OnInitialize(initConfig)
 
 	// RootCmd.PersistentFlags().StringVar(&configFlag, "config", "", fmt.Sprintf("config file (default is %s)", filepath.Join(configPath, "config")))
 	RootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file")
-	RootCmd.PersistentFlags().CountP("verbose", "v", "counted verbosity")
-	RootCmd.PersistentFlags().BoolP("no-color", "N", false, "do not output ANSI color codes")
+	RootCmd.PersistentFlags().CountP("verbose", "v", "verbose output (may be repeated)")
+	RootCmd.PersistentFlags().Bool("dryrun", false, "run without performing any persistent operations")
+	RootCmd.PersistentFlags().Bool("color", true, "colorize output")
+	RootCmd.PersistentFlags().Bool("no-color", false, "do not output ANSI color codes")
 
-	err = viper.BindPFlag("noColor", RootCmd.PersistentFlags().Lookup("no-color"))
-	if err != nil {
-		panic(err)
-	}
+	_ = viper.BindPFlag("dryrun", RootCmd.PersistentFlags().Lookup("dryrun"))
 
 	// Add subcommands
 
