@@ -9,7 +9,10 @@ import (
 )
 
 // Global Log variable
-var Log *pterm.Logger
+var (
+	Log     *pterm.Logger
+	Testing bool = false
+)
 
 // SetLogger sets the default logger verbosity level and returns a logger instance
 func SetLogger(verbosity int) *pterm.Logger {
@@ -31,8 +34,15 @@ func Panic(err error) {
 }
 
 func Fatal(msg string, args ...any) {
-	Log.Error(fmt.Errorf(msg, args...).Error())
-	os.Exit(1)
+	err := fmt.Errorf(msg, args...)
+
+	// Panic if testing so we can catch it
+	if Testing {
+		Panic(err)
+	} else {
+		Log.Error(err.Error())
+		os.Exit(1)
+	}
 }
 
 func Error(msg string, args ...any) {

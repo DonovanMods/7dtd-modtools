@@ -12,6 +12,7 @@ import (
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -51,7 +52,7 @@ func mkTempDir(t *testing.T) string {
 func setup(t *testing.T) *assert.Assertions {
 	t.Helper()
 
-	logger.Info("running setup")
+	logger.Testing = true
 
 	// Use MemMapFs for testing
 	builder.FS = FS
@@ -150,24 +151,61 @@ func TestParseArgs(t *testing.T) {
 
 	inputs := []struct {
 		Args     []string
-		expected map[string]string
+		expected map[builder.Key]string
 	}{
 		{
 			Args: []string{"by=2.25", "min=4", "max=25"},
-			expected: map[string]string{
+			expected: map[builder.Key]string{
 				"by":  "2.25",
 				"max": "25",
 				"min": "4",
 			},
 		},
 		{
+			Args: []string{"By=2.25", "Min=4"},
+			expected: map[builder.Key]string{
+				"by":  "2.25",
+				"min": "4",
+			},
+		},
+		{
+			Args: []string{"BY=2.25", "MIN=4"},
+			expected: map[builder.Key]string{
+				"by":  "2.25",
+				"min": "4",
+			},
+		},
+		{
+			Args:     []string{"by=1", "invalid=foo"},
+			expected: map[builder.Key]string{"by": "1"},
+		},
+		{
 			Args:     []string{},
-			expected: map[string]string{},
+			expected: map[builder.Key]string{},
 		},
 	}
 
 	for _, input := range inputs {
 		actual := builder.ParseArgs(input.Args)
 		assert.Equal(input.expected, actual, "ParseArgs should return the correct string")
+	}
+}
+
+func TestParseArgsInvalid(t *testing.T) {
+	_ = setup(t)
+
+	inputs := []struct {
+		Args     []string
+		expected map[builder.Key]string
+	}{
+		{
+			Args: []string{"by="},
+		},
+	}
+
+	for _, input := range inputs {
+		require.Panics(t, func() {
+			builder.ParseArgs(input.Args)
+		}, "invalid input (key or value is empty)")
 	}
 }

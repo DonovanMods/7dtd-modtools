@@ -20,7 +20,6 @@ import (
 	"io/fs"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -33,13 +32,28 @@ import (
 // Helper functions
 */
 
+type Key string
+
 const (
-	By  = "by"
-	Min = "min"
-	Max = "max"
+	By  Key = "by"
+	Min Key = "min"
+	Max Key = "max"
 )
 
-var validArgs = []string{By, Min, Max}
+func (k Key) String() string {
+	return string(k)
+}
+
+func (k Key) IsValid() bool {
+	validArgs := []Key{By, Min, Max}
+
+	for _, v := range validArgs {
+		if v == k {
+			return true
+		}
+	}
+	return false
+}
 
 type FuncArgs struct {
 	Outdir  string
@@ -181,8 +195,8 @@ func WriteFunc(fargs FuncArgs) func() null {
 // Helper functions
 */
 
-func ParseArgs(args []string) map[string]string {
-	pargs := make(map[string]string, len(args))
+func ParseArgs(args []string) map[Key]string {
+	pargs := make(map[Key]string, len(args))
 
 	re := regexp.MustCompile(`(?P<key>[^=]+)=(?P<value>.+)`)
 
@@ -196,14 +210,19 @@ func ParseArgs(args []string) map[string]string {
 			logger.Fatal("invalid argument format: %q", arg)
 		}
 
-		key := strings.TrimSpace(matches[1])
+		key := Key(strings.ToLower(strings.TrimSpace(matches[1])))
 		value := strings.TrimSpace(matches[2])
 
-		if key == "" || value == "" || !slices.Contains(validArgs, key) {
-			logger.Fatal("invalid argument: %q", arg)
+		if key == "" || value == "" {
+			logger.Fatal("invalid input (key or value is empty)")
 		}
 
-		pargs[key] = value
+		if !key.IsValid() {
+			logger.Error("unknown argument key: %q", key)
+			continue
+		}
+
+		pargs[Key(key)] = value
 	}
 
 	return pargs
