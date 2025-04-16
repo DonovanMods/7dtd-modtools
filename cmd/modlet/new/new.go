@@ -19,7 +19,7 @@ var flags struct {
 var NewCmd = &cobra.Command{
 	Use:     "new [flags] <modlet-name>",
 	Short:   "Create a new modlet in the location specified or in the current directory",
-	Args:    cobra.MaximumNArgs(1),
+	Args:    cobra.ExactArgs(1),
 	GroupID: "cmd",
 	Run:     execute,
 }
@@ -70,10 +70,4 @@ func execute(cmd *cobra.Command, name []string) {
 	if verbosity > 0 {
 		fmt.Println("Created new modlet:", modletBase)
 	}
-}
-
-func init() {
-	NewCmd.Flags().StringVarP(&flags.dir, "dir", "d", ".", `The directory to create the modlet`)
-	NewCmd.Flags().BoolP("force", "f", false, "Force overwrite of existing modlet directory")
-	_ = NewCmd.MarkFlagRequired("name")
 }

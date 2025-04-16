@@ -15,8 +15,8 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 
+	"github.com/donovanmods/7dtd-modtools/modlet"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -28,14 +28,17 @@ var PackCmd = &cobra.Command{
 	Long:    `Creates (packs) a new modlet (mod + template) from an existing Mod directory`,
 	GroupID: "cmd",
 	Run: func(cmd *cobra.Command, mods []string) {
-		if len(mods) == 0 {
-			cobra.CheckErr(errors.New("no modlet templates provided"))
+		if len(mods) == 0 || mods[0] == "" {
+			cobra.CheckErr(errors.New("mod directory is required"))
 		}
-		if len(mods) > 1 {
-			cobra.CheckErr(errors.New("only one modlet template can be provided"))
+		mdir := mods[0]
+
+		outdir := viper.GetString("outdir")
+		if outdir == "" {
+			cobra.CheckErr("outdir is required")
 		}
 
-		fmt.Println("Creating modlet from", mods[0])
+		cobra.CheckErr(modlet.Pack(mdir, outdir))
 	},
 }
 

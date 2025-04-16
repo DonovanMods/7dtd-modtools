@@ -16,8 +16,13 @@ package modlet
 import (
 	"fmt"
 
+	"github.com/donovanmods/7dtd-modtools/modlet/pack"
 	"github.com/donovanmods/7dtd-modtools/modlet/unpack"
 )
+
+func Pack(moddir string, outdir string) error {
+	return pack.Run(moddir, outdir)
+}
 
 func Unpack(templates []string, gamedir string, outdir string) error {
 	for _, t := range templates {

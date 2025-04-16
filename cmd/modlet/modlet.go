@@ -41,4 +41,7 @@ func init() {
 
 	ModletCmd.PersistentFlags().StringP("outdir", "o", ".", "Output directory")
 	cobra.CheckErr(viper.BindPFlag("outdir", ModletCmd.PersistentFlags().Lookup("outdir")))
+
+	ModletCmd.PersistentFlags().BoolP("force", "f", false, "Force overwrite of existing files")
+	cobra.CheckErr(viper.BindPFlag("force", ModletCmd.PersistentFlags().Lookup("force")))
 }
