@@ -14,7 +14,9 @@ copies or substantial portions of the Software.
 package pack
 
 import (
+	"bufio"
 	"bytes"
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"io"
@@ -154,8 +156,31 @@ func writeOutput(key string, file io.Writer) error {
 }
 
 func writeBufferMapToFile(outDir string) error {
-	outputBuffer := bytes.NewBuffer(nil)
+	var (
+		// buffer = bytes.NewBuffer([]byte(fmt.Sprintf("{{- modlet %q -}}\n", modletName)))
+		// buffer = bytes.NewBuffer(nil)
+		gzWriter *gzip.Writer
+		writer   *bufio.Writer
+		compress = viper.GetBool("compress")
+	)
+
 	modletPath = filepath.Join(outDir, strings.ToLower(modletName+".tmpl"))
+
+	if compress {
+		modletPath += ".gz"
+	}
+
+	file, err := common.FS.Create(modletPath)
+	if err != nil {
+		return err
+	}
+
+	if compress {
+		gzWriter = gzip.NewWriter(file)
+		writer = bufio.NewWriter(gzWriter)
+	} else {
+		writer = bufio.NewWriter(file)
+	}
 
 	if exists, err := common.FS.Exists(modletPath); err == nil && exists {
 		if !viper.GetBool("force") {
@@ -168,10 +193,12 @@ func writeBufferMapToFile(outDir string) error {
 	// Write template modlet name
 	logger.Debug("Writing modlet data to buffer for %q", modletName)
 
-	fmt.Fprintf(outputBuffer, "{{- modlet %q -}}\n", modletName)
+	if _, err := fmt.Fprintf(writer, "{{- modlet %q -}}\n", modletName); err != nil {
+		return fmt.Errorf("error writing modlet name to buffer: %w", err)
+	}
 
 	// Write ModInfo data
-	if err := writeOutput(findBufferKey("modinfo.xml"), outputBuffer); err != nil {
+	if err := writeOutput(findBufferKey("modinfo.xml"), writer); err != nil {
 		return fmt.Errorf("error writing modinfo block: %w", err)
 	}
 
@@ -182,13 +209,27 @@ func writeBufferMapToFile(outDir string) error {
 			continue
 		}
 
-		if err := writeOutput(key, outputBuffer); err != nil {
+		if err := writeOutput(key, writer); err != nil {
 			return fmt.Errorf("error writing modinfo block: %w", err)
 		}
 	}
 
-	if err := common.FS.WriteFile(modletPath, outputBuffer.Bytes(), 0644); err != nil {
-		return fmt.Errorf("error writing modlet file %s: %w", filepath.Join(outDir, modletPath), err)
+	// Flush our buffers before writing to file
+	if err := writer.Flush(); err != nil {
+		return fmt.Errorf("error flushing writer: %w", err)
+	}
+
+	if compress {
+		if err := gzWriter.Close(); err != nil {
+			return fmt.Errorf("error closing gzip writer: %w", err)
+		}
+	}
+	// if err := common.FS.WriteFile(modletPath, buffer.Bytes(), 0644); err != nil {
+	// 	return fmt.Errorf("error writing modlet file %s: %w", filepath.Join(outDir, modletPath), err)
+	// }
+
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("error closing file %s: %w", modletPath, err)
 	}
 
 	return nil

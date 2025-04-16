@@ -43,6 +43,6 @@ var PackCmd = &cobra.Command{
 }
 
 func init() {
-	PackCmd.Flags().StringP("compress", "z", "", "Compress the final modlet file")
+	PackCmd.Flags().BoolP("compress", "z", false, "Compress the final modlet file")
 	cobra.CheckErr(viper.BindPFlag("compress", PackCmd.Flags().Lookup("compress")))
 }
