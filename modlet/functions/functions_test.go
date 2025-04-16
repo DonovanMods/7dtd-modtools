@@ -1,4 +1,17 @@
-package builder_test
+/*
+Copyright © 2025 Donovan C. Young <dyoung522@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+*/
+package functions_test
 
 import (
 	"bytes"
@@ -8,8 +21,9 @@ import (
 	"testing"
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
-	"github.com/donovanmods/7dtd-modtools/lib/builder"
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
+	"github.com/donovanmods/7dtd-modtools/modlet/common"
+	"github.com/donovanmods/7dtd-modtools/modlet/functions"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,7 +69,7 @@ func setup(t *testing.T) *assert.Assertions {
 	logger.Testing = true
 
 	// Use MemMapFs for testing
-	builder.FS = FS
+	common.FS = FS
 
 	mkTempDir(t)
 
@@ -65,12 +79,12 @@ func setup(t *testing.T) *assert.Assertions {
 func TestModletFunc(t *testing.T) {
 	assert := setup(t)
 
-	funcArgs := builder.FuncArgs{
+	funcArgs := common.FuncArgs{
 		Outdir:  testTMP,
 		ModInfo: &modinfo.ModInfo{},
 	}
 
-	fn := builder.ModletFunc(funcArgs)
+	fn := functions.ModletFunc(funcArgs)
 	modletName := "TestModlet"
 
 	fn(modletName)
@@ -86,17 +100,17 @@ func TestModletFunc(t *testing.T) {
 func TestOutputFunc(t *testing.T) {
 	assert := setup(t)
 
-	funcArgs := builder.FuncArgs{
+	funcArgs := common.FuncArgs{
 		Outdir:  testTMP,
 		ModInfo: &modinfo.ModInfo{},
-		FBuffer: &builder.FileBuffer{},
+		FBuffer: &common.FileBuffer{},
 		GBuffer: bytes.NewBuffer(nil),
-		FBufMap: make(builder.FileBufferMap),
+		FBufMap: make(common.FileBufferMap),
 	}
 
 	funcArgs.ModInfo.SetPath(funcArgs.Outdir)
 
-	fn := builder.OutputFunc(funcArgs)
+	fn := functions.OutputFunc(funcArgs)
 	outputPath := "testfile.txt"
 
 	fn(outputPath)
@@ -112,11 +126,11 @@ func TestOutputFunc(t *testing.T) {
 func TestSetFunc(t *testing.T) {
 	assert := setup(t)
 
-	funcArgs := builder.FuncArgs{
+	funcArgs := common.FuncArgs{
 		ModInfo: &modinfo.ModInfo{},
 	}
 
-	fn := builder.SetFunc(funcArgs)
+	fn := functions.SetFunc(funcArgs)
 
 	xpath := `//block[@name='terrStone']/drop[@event='Harvest' and @name='resourceRockSmall']/@count`
 	value := "999"
@@ -132,15 +146,15 @@ func TestWriteFunc(t *testing.T) {
 
 	buf := bytes.NewBuffer(nil)
 
-	funcArgs := builder.FuncArgs{
-		FBuffer: &builder.FileBuffer{
+	funcArgs := common.FuncArgs{
+		FBuffer: &common.FileBuffer{
 			Buffer: buf,
 			Writer: NewNopIO(t, buf), // Using stdout for testing
 		},
 		GBuffer: bytes.NewBufferString("Test content"),
 	}
 
-	fn := builder.WriteFunc(funcArgs)
+	fn := functions.WriteFunc(funcArgs)
 	fn()
 
 	assert.Equal("Test content", funcArgs.FBuffer.Buffer.String(), "Buffer content should match")
@@ -151,11 +165,11 @@ func TestParseArgs(t *testing.T) {
 
 	inputs := []struct {
 		Args     []string
-		expected map[builder.Key]string
+		expected map[functions.Key]string
 	}{
 		{
 			Args: []string{"by=2.25", "min=4", "max=25"},
-			expected: map[builder.Key]string{
+			expected: map[functions.Key]string{
 				"by":  "2.25",
 				"max": "25",
 				"min": "4",
@@ -163,30 +177,30 @@ func TestParseArgs(t *testing.T) {
 		},
 		{
 			Args: []string{"By=2.25", "Min=4"},
-			expected: map[builder.Key]string{
+			expected: map[functions.Key]string{
 				"by":  "2.25",
 				"min": "4",
 			},
 		},
 		{
 			Args: []string{"BY=2.25", "MIN=4"},
-			expected: map[builder.Key]string{
+			expected: map[functions.Key]string{
 				"by":  "2.25",
 				"min": "4",
 			},
 		},
 		{
 			Args:     []string{"by=1", "invalid=foo"},
-			expected: map[builder.Key]string{"by": "1"},
+			expected: map[functions.Key]string{"by": "1"},
 		},
 		{
 			Args:     []string{},
-			expected: map[builder.Key]string{},
+			expected: map[functions.Key]string{},
 		},
 	}
 
 	for _, input := range inputs {
-		actual := builder.ParseArgs(input.Args)
+		actual := functions.ParseArgs(input.Args)
 		assert.Equal(input.expected, actual, "ParseArgs should return the correct string")
 	}
 }
@@ -196,7 +210,7 @@ func TestParseArgsInvalid(t *testing.T) {
 
 	inputs := []struct {
 		Args     []string
-		expected map[builder.Key]string
+		expected map[functions.Key]string
 	}{
 		{
 			Args: []string{"by="},
@@ -205,7 +219,7 @@ func TestParseArgsInvalid(t *testing.T) {
 
 	for _, input := range inputs {
 		require.Panics(t, func() {
-			builder.ParseArgs(input.Args)
+			functions.ParseArgs(input.Args)
 		}, "invalid input (key or value is empty)")
 	}
 }

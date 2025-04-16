@@ -11,54 +11,29 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 */
-package builder
+package unpack
 
 import (
 	"bytes"
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"io"
 	"path/filepath"
 	"strings"
 	"text/template"
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
-	"github.com/spf13/afero"
+	"github.com/donovanmods/7dtd-modtools/modlet/common"
+	"github.com/donovanmods/7dtd-modtools/modlet/functions"
 )
 
-// FS is the filesystem interface used for file operations
-var FS = &afero.Afero{Fs: afero.NewOsFs()}
-
-type FileBuffer struct {
-	Buffer *bytes.Buffer
-	Writer io.WriteCloser
-}
-
-type null string // we use this when we need to output nothing
-
-// Holds buffers and io.WriteCloser for each output file
-type FileBufferMap map[string]FileBuffer
-
-// Used to track output/write state
-var outputFound bool
-
-func BuildModlets(templates []string, gamedir string, outdir string) error {
-	for _, t := range templates {
-		if err := BuildModlet(t, gamedir, outdir); err != nil {
-			return fmt.Errorf("error building modlet from template %s: %w", t, err)
-		}
-	}
-	return nil
-}
-
-func BuildModlet(tmpl string, gamedir string, outdir string) error {
+func Run(tmpl string, gamedir string, outdir string) error {
 	var modInfo modinfo.ModInfo
 
-	fBufMap := make(FileBufferMap)
+	fBufMap := make(common.FileBufferMap)
 	gBuffer := bytes.NewBuffer(nil)
-	fBuffer := &FileBuffer{
+	fBuffer := &common.FileBuffer{
 		Buffer: gBuffer,
 		Writer: nil,
 	}
@@ -80,14 +55,14 @@ func BuildModlet(tmpl string, gamedir string, outdir string) error {
 
 	logger.Debug("processing template: %s", templateName)
 
-	fargs := FuncArgs{outdir, gamedir, &modInfo, fBuffer, gBuffer, fBufMap}
+	fargs := common.FuncArgs{Outdir: outdir, Gamedir: gamedir, ModInfo: &modInfo, FBuffer: fBuffer, GBuffer: gBuffer, FBufMap: fBufMap}
 	t, err := template.New(templateName).
 		Funcs(template.FuncMap{
-			"modlet":    ModletFunc(fargs),
-			"mult":      MultFunc(fargs),
-			"output":    OutputFunc(fargs),
-			"set":       SetFunc(fargs),
-			"write":     WriteFunc(fargs),
+			"modlet":    functions.ModletFunc(fargs),
+			"mult":      functions.MultFunc(fargs),
+			"output":    functions.OutputFunc(fargs),
+			"set":       functions.SetFunc(fargs),
+			"write":     functions.WriteFunc(fargs),
 			"xmlHeader": func() string { return xml.Header },
 		}).
 		ParseFiles(tmpl)
@@ -109,7 +84,7 @@ func BuildModlet(tmpl string, gamedir string, outdir string) error {
 	return nil
 }
 
-func writeBuf(path string, fBuffer FileBuffer) error {
+func writeBuf(path string, fBuffer common.FileBuffer) error {
 	path = strings.TrimSpace(path)
 
 	logger.Info("writing %q", path)

@@ -14,7 +14,7 @@ copies or substantial portions of the Software.
 package cmd
 
 import (
-	"github.com/donovanmods/7dtd-modtools/lib/builder"
+	"github.com/donovanmods/7dtd-modtools/modlet"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -40,6 +40,6 @@ var UnpackCmd = &cobra.Command{
 			cobra.CheckErr("outdir is required")
 		}
 
-		cobra.CheckErr(builder.BuildModlets(templates, gamedir, outdir))
+		cobra.CheckErr(modlet.Unpack(templates, gamedir, outdir))
 	},
 }

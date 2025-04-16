@@ -16,7 +16,7 @@ tasks:
   test:
     desc: Run tests
     cmds:
-      - go test -cover ./lib/...
+      - go test -cover ./...
 
   tidy:
     desc: Tidy up the module
