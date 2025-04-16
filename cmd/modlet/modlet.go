@@ -14,32 +14,31 @@ copies or substantial portions of the Software.
 package cmd
 
 import (
-	"github.com/donovanmods/7dtd-modtools/lib/builder"
+	sub2 "github.com/donovanmods/7dtd-modtools/cmd/modlet/new"
+	sub1 "github.com/donovanmods/7dtd-modtools/cmd/modlet/pack"
+	sub3 "github.com/donovanmods/7dtd-modtools/cmd/modlet/unpack"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var flags struct {
-	gamedir string
-	outdir  string
-}
-
 var ModletCmd = &cobra.Command{
-	Use:     "modlet <modlet-templates>",
-	Args:    cobra.MinimumNArgs(1),
-	Short:   "Build modlet from modlet template",
-	Long:    `Builds a modlet from a modlet template file`,
+	Use:     "modlet",
+	Short:   "modlet commands",
 	GroupID: "cmd",
-	Run: func(cmd *cobra.Command, templates []string) {
-		cobra.CheckErr(builder.BuildModlets(templates, flags.gamedir, flags.outdir))
-	},
 }
 
 func init() {
-	ModletCmd.Flags().StringVarP(&flags.gamedir, "gamedir", "g", "", "Directory where the game's Config XML files live")
-	cobra.CheckErr(viper.BindPFlag("gamedir", ModletCmd.Flags().Lookup("gamedir")))
+	ModletCmd.AddGroup(&cobra.Group{ID: "cmd", Title: "Commands"})
+
+	ModletCmd.AddCommand(sub1.PackCmd)
+	ModletCmd.AddCommand(sub2.NewCmd)
+	ModletCmd.AddCommand(sub3.UnpackCmd)
+
+	ModletCmd.PersistentFlags().StringP("gamedir", "G", "", "Directory where the game's Config XML files live")
+	cobra.CheckErr(viper.BindPFlag("gamedir", ModletCmd.PersistentFlags().Lookup("gamedir")))
 	_ = ModletCmd.MarkFlagRequired("gamedir")
 
-	ModletCmd.Flags().StringVarP(&flags.outdir, "outdir", "o", ".", "Output directory")
-	cobra.CheckErr(viper.BindPFlag("outdir", ModletCmd.Flags().Lookup("outdir")))
+	ModletCmd.PersistentFlags().StringP("outdir", "o", ".", "Output directory")
+	cobra.CheckErr(viper.BindPFlag("outdir", ModletCmd.PersistentFlags().Lookup("outdir")))
 }

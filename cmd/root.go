@@ -19,7 +19,7 @@ import (
 	"os"
 	"path/filepath"
 
-	sub1 "github.com/donovanmods/7dtd-modtools/cmd/build"
+	sub1 "github.com/donovanmods/7dtd-modtools/cmd/modlet"
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
 	cc "github.com/ivanpirog/coloredcobra"
 	"github.com/spf13/cobra"
@@ -64,14 +64,13 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-
-	// RootCmd.PersistentFlags().StringVar(&configFlag, "config", "", fmt.Sprintf("config file (default is %s)", filepath.Join(configPath, "config")))
 	RootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file")
 	RootCmd.PersistentFlags().CountP("verbose", "v", "verbose output (may be repeated)")
 	RootCmd.PersistentFlags().Bool("dryrun", false, "run without performing any persistent operations")
 	RootCmd.PersistentFlags().Bool("color", true, "colorize output")
 	RootCmd.PersistentFlags().Bool("no-color", false, "do not output ANSI color codes")
+
+	cobra.OnInitialize(initConfig)
 
 	_ = viper.BindPFlag("dryrun", RootCmd.PersistentFlags().Lookup("dryrun"))
 
@@ -80,7 +79,7 @@ func init() {
 	cmdGroup := cobra.Group{ID: "cmd", Title: "Commands"}
 
 	RootCmd.AddGroup(&cmdGroup)
-	RootCmd.AddCommand(sub1.BuildCmd)
+	RootCmd.AddCommand(sub1.ModletCmd)
 }
 
 func version() string {
