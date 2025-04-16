@@ -16,9 +16,14 @@ package modlet
 import (
 	"fmt"
 
+	"github.com/donovanmods/7dtd-modtools/modlet/new"
 	"github.com/donovanmods/7dtd-modtools/modlet/pack"
 	"github.com/donovanmods/7dtd-modtools/modlet/unpack"
 )
+
+func New(name string, outdir string) error {
+	return new.Run(name, outdir)
+}
 
 func Pack(moddir string, outdir string) error {
 	return pack.Run(moddir, outdir)

@@ -24,8 +24,8 @@ import (
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
-	"github.com/donovanmods/7dtd-modtools/modlet/common"
-	"github.com/donovanmods/7dtd-modtools/modlet/functions"
+	"github.com/donovanmods/7dtd-modtools/modlet/lib/common"
+	"github.com/donovanmods/7dtd-modtools/modlet/lib/functions"
 )
 
 func Run(tmpl string, gamedir string, outdir string) error {

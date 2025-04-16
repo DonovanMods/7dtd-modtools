@@ -25,7 +25,7 @@ import (
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
-	"github.com/donovanmods/7dtd-modtools/modlet/common"
+	"github.com/donovanmods/7dtd-modtools/modlet/lib/common"
 	"github.com/spf13/viper"
 )
 
