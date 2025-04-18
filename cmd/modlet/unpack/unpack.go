@@ -35,11 +35,11 @@ var UnpackCmd = &cobra.Command{
 			cobra.CheckErr("gamedir is required")
 		}
 
-		outdir := viper.GetString("outdir")
-		if outdir == "" {
-			cobra.CheckErr("outdir is required")
+		output := viper.GetString("output")
+		if output == "" {
+			cobra.CheckErr("output is required")
 		}
 
-		cobra.CheckErr(modlet.Unpack(templates, gamedir, outdir))
+		cobra.CheckErr(modlet.Unpack(templates, gamedir, output))
 	},
 }

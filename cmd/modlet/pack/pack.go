@@ -33,12 +33,12 @@ var PackCmd = &cobra.Command{
 		}
 		mdir := mods[0]
 
-		outdir := viper.GetString("outdir")
-		if outdir == "" {
-			cobra.CheckErr("outdir is required")
+		output := viper.GetString("output")
+		if output == "" {
+			cobra.CheckErr("output is required")
 		}
 
-		cobra.CheckErr(modlet.Pack(mdir, outdir))
+		cobra.CheckErr(modlet.Pack(mdir, output))
 	},
 }
 

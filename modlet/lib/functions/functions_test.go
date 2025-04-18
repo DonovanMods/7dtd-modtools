@@ -80,7 +80,7 @@ func TestModletFunc(t *testing.T) {
 	assert := setup(t)
 
 	funcArgs := common.FuncArgs{
-		Outdir:  testTMP,
+		Output:  testTMP,
 		ModInfo: &modinfo.ModInfo{},
 	}
 
@@ -90,7 +90,7 @@ func TestModletFunc(t *testing.T) {
 	fn(modletName)
 
 	assert.Equal(modletName, funcArgs.ModInfo.GetValue("name"))
-	assert.Equal(filepath.Join(funcArgs.Outdir, modletName), funcArgs.ModInfo.Path())
+	assert.Equal(filepath.Join(funcArgs.Output, modletName), funcArgs.ModInfo.Path())
 
 	exists, err := FS.DirExists(funcArgs.ModInfo.Path())
 	assert.NoError(err, "Error checking for Modlet directory")
@@ -101,21 +101,21 @@ func TestOutputFunc(t *testing.T) {
 	assert := setup(t)
 
 	funcArgs := common.FuncArgs{
-		Outdir:  testTMP,
+		Output:  testTMP,
 		ModInfo: &modinfo.ModInfo{},
 		FBuffer: &common.FileBuffer{},
 		GBuffer: bytes.NewBuffer(nil),
 		FBufMap: make(common.FileBufferMap),
 	}
 
-	funcArgs.ModInfo.SetPath(funcArgs.Outdir)
+	funcArgs.ModInfo.SetPath(funcArgs.Output)
 
 	fn := functions.OutputFunc(funcArgs)
 	outputPath := "testfile.txt"
 
 	fn(outputPath)
 
-	fullPath := filepath.Join(funcArgs.Outdir, outputPath)
+	fullPath := filepath.Join(funcArgs.Output, outputPath)
 	assert.Contains(funcArgs.FBufMap, fullPath, "File buffer map should contain the output path")
 
 	exists, err := FS.Exists(funcArgs.ModInfo.Path())
@@ -222,4 +222,17 @@ func TestParseArgsInvalid(t *testing.T) {
 			functions.ParseArgs(input.Args)
 		}, "invalid input (key or value is empty)")
 	}
+}
+
+func TestMkPath(t *testing.T) {
+	assert := setup(t)
+
+	path := "test/path/to/dir"
+
+	err := functions.MkPath(path)
+	assert.NoError(err, "Error creating directory")
+
+	exists, err := FS.DirExists(path)
+	assert.NoError(err, "Error checking for directory")
+	assert.True(exists, "Directory should exist")
 }

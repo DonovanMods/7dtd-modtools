@@ -15,10 +15,14 @@ package unpack
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -26,10 +30,28 @@ import (
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
 	"github.com/donovanmods/7dtd-modtools/modlet/lib/common"
 	"github.com/donovanmods/7dtd-modtools/modlet/lib/functions"
+	"github.com/spf13/viper"
 )
 
-func Run(tmpl string, gamedir string, outdir string) error {
+func Run(tmpl string, gamedir string, output string) error {
 	var modInfo modinfo.ModInfo
+
+	tmpl = filepath.Clean(tmpl)
+	if tmpl == "" {
+		return errors.New("no templates provided")
+	}
+
+	templateName := filepath.Base(tmpl)
+	if templateName == "" {
+		return errors.New("no template name provided")
+	}
+
+	if err := ValidateTemplate(tmpl); err != nil {
+		return fmt.Errorf("error validating template %s: %w", tmpl, err)
+	}
+
+	gamedir = filepath.Clean(gamedir)
+	output = filepath.Clean(output)
 
 	fBufMap := make(common.FileBufferMap)
 	gBuffer := bytes.NewBuffer(nil)
@@ -38,34 +60,21 @@ func Run(tmpl string, gamedir string, outdir string) error {
 		Writer: nil,
 	}
 
-	if strings.TrimSpace(tmpl) == "" {
-		return errors.New("no templates provided")
-	}
-
-	if strings.TrimSpace(gamedir) == "" {
-		return errors.New("gamedir not provided")
-	}
-
-	if strings.TrimSpace(outdir) == "" {
-		return errors.New("outdir not provided")
-	}
-
-	outdir = filepath.Clean(outdir)
-	templateName := filepath.Base(tmpl)
-
 	logger.Debug("processing template: %s", templateName)
 
-	fargs := common.FuncArgs{Outdir: outdir, Gamedir: gamedir, ModInfo: &modInfo, FBuffer: fBuffer, GBuffer: gBuffer, FBufMap: fBufMap}
-	t, err := template.New(templateName).
-		Funcs(template.FuncMap{
-			"modlet":    functions.ModletFunc(fargs),
-			"mult":      functions.MultFunc(fargs),
-			"output":    functions.OutputFunc(fargs),
-			"set":       functions.SetFunc(fargs),
-			"write":     functions.WriteFunc(fargs),
-			"xmlHeader": func() string { return xml.Header },
-		}).
-		ParseFiles(tmpl)
+	fargs := common.FuncArgs{
+		Output:  output,
+		Gamedir: gamedir,
+		ModInfo: &modInfo,
+		FBuffer: fBuffer,
+		GBuffer: gBuffer,
+		FBufMap: fBufMap,
+		Options: map[string]string{
+			"force": strconv.FormatBool(viper.GetBool("force")),
+		},
+	}
+
+	t, err := NewTemplate(tmpl, templateName, fargs)
 	if err != nil {
 		return fmt.Errorf("error parsing template %s: %w", templateName, err)
 	}
@@ -76,7 +85,7 @@ func Run(tmpl string, gamedir string, outdir string) error {
 
 	// Write our fBuffer to disk
 	for path, fBuffer := range fBufMap {
-		if err := writeBuf(path, fBuffer); err != nil {
+		if err := WriteBuf(path, fBuffer); err != nil {
 			logger.Panic(err)
 		}
 	}
@@ -84,7 +93,7 @@ func Run(tmpl string, gamedir string, outdir string) error {
 	return nil
 }
 
-func writeBuf(path string, fBuffer common.FileBuffer) error {
+func WriteBuf(path string, fBuffer common.FileBuffer) error {
 	path = strings.TrimSpace(path)
 
 	logger.Info("writing %q", path)
@@ -102,4 +111,63 @@ func writeBuf(path string, fBuffer common.FileBuffer) error {
 	}
 
 	return nil
+}
+
+func ValidateTemplate(tmpl string) error {
+	tmpl = filepath.Clean(tmpl)
+	templateName := filepath.Base(tmpl)
+
+	if templateName == "" {
+		return errors.New("no template name provided")
+	}
+
+	re := regexp.MustCompile(`(?i)\.tmpl(\.gz)?$`)
+	if !re.MatchString(templateName) {
+		return fmt.Errorf("%q does not appear to be a valid template file (must end in `.tmpl` or `.tmpl.gz`)", templateName)
+	}
+
+	if _, err := common.FS.Stat(tmpl); err != nil {
+		return fmt.Errorf("error validating template %s: %w", tmpl, err)
+	}
+
+	return nil
+}
+
+func NewTemplate(tmpl string, name string, fargs common.FuncArgs) (*template.Template, error) {
+	var data []byte
+
+	rawData, err := common.FS.ReadFile(tmpl)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.HasSuffix(tmpl, ".gz") {
+		gzipReader, err := gzip.NewReader(bytes.NewReader(rawData))
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			if err := gzipReader.Close(); err != nil {
+				logger.Fatal("error closing gzip reader: %w", err)
+			}
+		}()
+
+		data, err = io.ReadAll(gzipReader)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		data = rawData
+	}
+
+	return template.New(name).
+		Funcs(template.FuncMap{
+			"modlet":    functions.ModletFunc(fargs),
+			"mult":      functions.MultFunc(fargs),
+			"output":    functions.OutputFunc(fargs),
+			"set":       functions.SetFunc(fargs),
+			"write":     functions.WriteFunc(fargs),
+			"xmlHeader": func() string { return xml.Header },
+		}).
+		Parse(string(data))
 }

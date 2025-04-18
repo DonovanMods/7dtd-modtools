@@ -66,7 +66,6 @@ func (k Key) IsValid() bool {
 */
 
 // modlet sets up the modlet name and path
-// func FuncModlet(outdir string, modInfo *modinfo.ModInfo) func(string) null {
 func ModletFunc(fargs common.FuncArgs) func(string) null {
 	return func(name string) null {
 		name = strings.TrimSpace(name)
@@ -75,12 +74,25 @@ func ModletFunc(fargs common.FuncArgs) func(string) null {
 			logger.Fatal("modlet name must be provided")
 		}
 
-		path := filepath.Join(fargs.Outdir, name)
+		path := filepath.Join(fargs.Output, name)
+
+		if e, err := common.FS.Exists(path); err != nil {
+			logger.Fatal("error checking for modlet %q: %w", name, err)
+		} else if e {
+			if fargs.Options["force"] == strconv.FormatBool(true) {
+				logger.Warn("modlet %q already exists, overwriting", name)
+				if err := common.FS.RemoveAll(path); err != nil {
+					logger.Fatal("error removing existing modlet %q: %w", name, err)
+				}
+			} else {
+				logger.Fatal("modlet %q already exists, use --force to overwrite", name)
+			}
+		}
 
 		*fargs.ModInfo = *modinfo.NewModInfo(name)
 		fargs.ModInfo.SetPath(path)
 
-		if err := mkPath(fargs.ModInfo.Path()); err != nil {
+		if err := MkPath(fargs.ModInfo.Path()); err != nil {
 			logger.Panic(err)
 		}
 
@@ -130,7 +142,7 @@ func OutputFunc(fargs common.FuncArgs) func(string) null {
 		}
 
 		if fargs.ModInfo.Path() == "" {
-			logger.Fatal("please set the modlet using {{ modlet <name> }}")
+			logger.Fatal("you must set the modlet using {{ modlet <name> }} prior to any other operations")
 		}
 
 		cleanPath := filepath.Clean(path)
@@ -138,7 +150,7 @@ func OutputFunc(fargs common.FuncArgs) func(string) null {
 
 		logger.Trace("buffering output for %q", fullPath)
 
-		if err := mkPath(filepath.Dir(fullPath)); err != nil {
+		if err := MkPath(filepath.Dir(fullPath)); err != nil {
 			logger.Panic(err)
 		}
 
@@ -235,7 +247,9 @@ func must(output string, err error) string {
 }
 
 // Helper function to create a directory if it doesn't exist
-func mkPath(path string) error {
+func MkPath(path string) error {
+	path = filepath.Clean(path)
+
 	if !fs.ValidPath(path) {
 		return fmt.Errorf("invalid path %q", path)
 	}

@@ -40,22 +40,25 @@ var (
 	bufferMap       BufferMap = make(BufferMap)
 )
 
-func Run(modDir string, outDir string) error {
-	logger.Info("Packing modlet from %s to %s", modDir, outDir)
+func Run(moddir string, output string) error {
+	moddir = filepath.Clean(moddir)
+	output = filepath.Clean(output)
 
-	if isDir, _ := common.FS.DirExists(modDir); !isDir {
-		return fmt.Errorf("modlet directory %s does not exist", modDir)
+	logger.Info("Packing modlet from %s to %s", moddir, output)
+
+	if isDir, _ := common.FS.DirExists(moddir); !isDir {
+		return fmt.Errorf("modlet directory %s does not exist", moddir)
 	}
 
-	if err := walkDir(modDir); err != nil {
+	if err := walkDir(moddir); err != nil {
 		return fmt.Errorf("error walking modlet directory: %w", err)
 	}
 
-	if err := common.FS.MkdirAll(outDir, 0755); err != nil {
-		return fmt.Errorf("error creating output directory %s: %w", outDir, err)
+	if err := common.FS.MkdirAll(output, 0755); err != nil {
+		return fmt.Errorf("error creating output directory %s: %w", output, err)
 	}
 
-	if err := writeBufferMapToFile(outDir); err != nil {
+	if err := writeBufferMapToFile(output); err != nil {
 		return fmt.Errorf("error writing modlet file: %w", err)
 	}
 
@@ -155,7 +158,7 @@ func writeOutput(key string, file io.Writer) error {
 	return nil
 }
 
-func writeBufferMapToFile(outDir string) error {
+func writeBufferMapToFile(output string) error {
 	var (
 		// buffer = bytes.NewBuffer([]byte(fmt.Sprintf("{{- modlet %q -}}\n", modletName)))
 		// buffer = bytes.NewBuffer(nil)
@@ -164,7 +167,7 @@ func writeBufferMapToFile(outDir string) error {
 		compress = viper.GetBool("compress")
 	)
 
-	modletPath = filepath.Join(outDir, strings.ToLower(modletName+".tmpl"))
+	modletPath = filepath.Join(output, strings.ToLower(modletName+".tmpl"))
 
 	if compress {
 		modletPath += ".gz"
@@ -225,7 +228,7 @@ func writeBufferMapToFile(outDir string) error {
 		}
 	}
 	// if err := common.FS.WriteFile(modletPath, buffer.Bytes(), 0644); err != nil {
-	// 	return fmt.Errorf("error writing modlet file %s: %w", filepath.Join(outDir, modletPath), err)
+	// 	return fmt.Errorf("error writing modlet file %s: %w", filepath.Join(output, modletPath), err)
 	// }
 
 	if err := file.Close(); err != nil {

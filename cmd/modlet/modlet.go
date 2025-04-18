@@ -39,9 +39,9 @@ func init() {
 	cobra.CheckErr(viper.BindPFlag("gamedir", ModletCmd.PersistentFlags().Lookup("gamedir")))
 	_ = ModletCmd.MarkFlagRequired("gamedir")
 
-	ModletCmd.PersistentFlags().StringP("outdir", "o", ".", "Output directory")
-	cobra.CheckErr(viper.BindPFlag("outdir", ModletCmd.PersistentFlags().Lookup("outdir")))
+	ModletCmd.PersistentFlags().StringP("output", "o", "", "Output directory and/or file")
+	cobra.CheckErr(viper.BindPFlag("output", ModletCmd.PersistentFlags().Lookup("output")))
 
-	ModletCmd.PersistentFlags().BoolP("force", "f", false, "Force overwrite of existing files")
+	ModletCmd.PersistentFlags().BoolP("force", "F", false, "Force overwrite of existing files")
 	cobra.CheckErr(viper.BindPFlag("force", ModletCmd.PersistentFlags().Lookup("force")))
 }

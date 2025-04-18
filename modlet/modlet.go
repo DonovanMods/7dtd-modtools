@@ -21,17 +21,17 @@ import (
 	"github.com/donovanmods/7dtd-modtools/modlet/unpack"
 )
 
-func New(name string, outdir string) error {
-	return new.Run(name, outdir)
+func New(name string, output string) error {
+	return new.Run(name, output)
 }
 
-func Pack(moddir string, outdir string) error {
-	return pack.Run(moddir, outdir)
+func Pack(moddir string, output string) error {
+	return pack.Run(moddir, output)
 }
 
-func Unpack(templates []string, gamedir string, outdir string) error {
+func Unpack(templates []string, gamedir string, output string) error {
 	for _, t := range templates {
-		if err := unpack.Run(t, gamedir, outdir); err != nil {
+		if err := unpack.Run(t, gamedir, output); err != nil {
 			return fmt.Errorf("error building modlet from template %s: %w", t, err)
 		}
 	}
