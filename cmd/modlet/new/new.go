@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"path/filepath"
-
 	"github.com/donovanmods/7dtd-modtools/modlet"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -19,8 +17,15 @@ var NewCmd = &cobra.Command{
 			cobra.CheckErr("please provide a Modlet name to use on the command line")
 		}
 
-		output := filepath.Clean(viper.GetString("output"))
+		file, err := modlet.ValidateOutputFile(viper.GetString("output"))
+		if err != nil {
+			cobra.CheckErr(err)
+		}
 
-		cobra.CheckErr(modlet.New(name[0], output))
+		cobra.CheckErr(modlet.NewCmd(modlet.CmdArgs{
+			Name:   name[0],
+			Output: file,
+			Force:  viper.GetBool("force"),
+		}))
 	},
 }

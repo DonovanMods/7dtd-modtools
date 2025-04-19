@@ -14,26 +14,110 @@ copies or substantial portions of the Software.
 package modlet
 
 import (
+	"errors"
 	"fmt"
+	"path/filepath"
 
-	"github.com/donovanmods/7dtd-modtools/modlet/new"
-	"github.com/donovanmods/7dtd-modtools/modlet/pack"
-	"github.com/donovanmods/7dtd-modtools/modlet/unpack"
+	"github.com/donovanmods/7dtd-modtools/lib/logger"
+	"github.com/spf13/afero"
 )
 
-func New(name string, output string) error {
-	return new.Run(name, output)
+// FS is the filesystem interface used for file operations
+var FS = &afero.Afero{Fs: afero.NewOsFs()}
+
+type CmdArgs struct {
+	Name     string
+	Input    []string
+	Output   string
+	Gamedir  string
+	Compress bool
+	Force    bool
 }
 
-func Pack(moddir string, output string) error {
-	return pack.Run(moddir, output)
+func (CA *CmdArgs) Sanitize() CmdArgs {
+	for i, input := range CA.Input {
+		CA.Input[i] = filepath.Clean(input)
+	}
+	CA.Output = filepath.Clean(CA.Output)
+	CA.Gamedir = filepath.Clean(CA.Gamedir)
+
+	return *CA
 }
 
-func Unpack(templates []string, gamedir string, output string) error {
-	for _, t := range templates {
-		if err := unpack.Run(t, gamedir, output); err != nil {
+func NewCmd(args CmdArgs) error {
+	return New(args)
+}
+
+func PackCmd(args CmdArgs) error {
+	return Pack(args)
+}
+
+func UnpackCmd(args CmdArgs) error {
+	// gamedir string, output string) error {
+	for _, t := range args.Input {
+		if err := Unpack(t, args); err != nil {
+			// t, opts.Gamedir, opts.Output, opts.Force); err != nil {
 			return fmt.Errorf("error building modlet from template %s: %w", t, err)
 		}
 	}
 	return nil
+}
+
+func ValidateOutputFile(file string) (string, error) {
+	file = filepath.Clean(file)
+
+	if file == "" {
+		return "", fmt.Errorf("no output file not specified")
+	}
+
+	if dir, err := FS.IsDir(file); err != nil {
+		if !errors.Is(err, afero.ErrFileNotFound) {
+			return "", fmt.Errorf("error checking output %s: %w", file, err)
+		}
+	} else if dir {
+		return "", fmt.Errorf("output %s is a directory, want a file", file)
+	}
+
+	return file, nil
+}
+
+func ValidateOutputDir(dir string) (string, error) {
+	dir = filepath.Clean(dir)
+
+	if d, err := FS.IsDir(dir); err != nil {
+		return "", fmt.Errorf("error checking output %s: %w", dir, err)
+	} else if !d {
+		return "", fmt.Errorf("output %s is not a directory", dir)
+	}
+
+	logger.Debug("Output directory: %s", dir)
+
+	if dir == "." {
+		return dir, nil
+	}
+
+	exists, err := FS.Exists(dir)
+	if err != nil {
+		return "", fmt.Errorf("error checking output directory %s: %w", dir, err)
+	}
+
+	if !exists {
+		if err := FS.MkdirAll(dir, 0755); err != nil {
+			return "", fmt.Errorf("error creating output directory %s: %w", dir, err)
+		}
+	}
+
+	return dir, nil
+}
+
+func CheckErr(err error) {
+	if err != nil {
+		logger.Fatal("Error: %v", err)
+	}
+}
+
+func CheckValue(value any, err error) any {
+	CheckErr(err)
+
+	return value
 }

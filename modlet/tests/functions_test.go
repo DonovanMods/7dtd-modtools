@@ -11,7 +11,7 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 */
-package functions_test
+package modlet_test
 
 import (
 	"bytes"
@@ -21,17 +21,8 @@ import (
 	"testing"
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
-	"github.com/donovanmods/7dtd-modtools/lib/logger"
-	"github.com/donovanmods/7dtd-modtools/modlet/lib/common"
-	"github.com/donovanmods/7dtd-modtools/modlet/lib/functions"
-	"github.com/spf13/afero"
-	"github.com/stretchr/testify/assert"
+	"github.com/donovanmods/7dtd-modtools/modlet"
 	"github.com/stretchr/testify/require"
-)
-
-var (
-	testTMP = "test_temp"
-	FS      = &afero.Afero{Fs: afero.NewMemMapFs()}
 )
 
 type nopIO struct {
@@ -47,44 +38,15 @@ func NewNopIO(t *testing.T, buf *bytes.Buffer) io.WriteCloser {
 	return nopIO{buf, buf}
 }
 
-func mkTempDir(t *testing.T) string {
-	t.Helper()
-
-	if exists, err := afero.DirExists(FS, testTMP); err != nil {
-		t.Fatalf("Error checking for temp directory: %v", err)
-	} else if !exists {
-		err := FS.Mkdir(testTMP, 0700)
-		if err != nil {
-			t.Fatal(err)
-		}
-		logger.Info("Created temp directory: %s", testTMP)
-	}
-
-	return testTMP
-}
-
-func setup(t *testing.T) *assert.Assertions {
-	t.Helper()
-
-	logger.Testing = true
-
-	// Use MemMapFs for testing
-	common.FS = FS
-
-	mkTempDir(t)
-
-	return assert.New(t)
-}
-
 func TestModletFunc(t *testing.T) {
 	assert := setup(t)
 
-	funcArgs := common.FuncArgs{
+	funcArgs := modlet.FuncArgs{
 		Output:  testTMP,
 		ModInfo: &modinfo.ModInfo{},
 	}
 
-	fn := functions.ModletFunc(funcArgs)
+	fn := modlet.ModletFunc(funcArgs)
 	modletName := "TestModlet"
 
 	fn(modletName)
@@ -100,17 +62,17 @@ func TestModletFunc(t *testing.T) {
 func TestOutputFunc(t *testing.T) {
 	assert := setup(t)
 
-	funcArgs := common.FuncArgs{
+	funcArgs := modlet.FuncArgs{
 		Output:  testTMP,
 		ModInfo: &modinfo.ModInfo{},
-		FBuffer: &common.FileBuffer{},
+		FBuffer: &modlet.FileBuffer{},
 		GBuffer: bytes.NewBuffer(nil),
-		FBufMap: make(common.FileBufferMap),
+		FBufMap: make(modlet.FileBufferMap),
 	}
 
 	funcArgs.ModInfo.SetPath(funcArgs.Output)
 
-	fn := functions.OutputFunc(funcArgs)
+	fn := modlet.OutputFunc(funcArgs)
 	outputPath := "testfile.txt"
 
 	fn(outputPath)
@@ -126,11 +88,11 @@ func TestOutputFunc(t *testing.T) {
 func TestSetFunc(t *testing.T) {
 	assert := setup(t)
 
-	funcArgs := common.FuncArgs{
+	funcArgs := modlet.FuncArgs{
 		ModInfo: &modinfo.ModInfo{},
 	}
 
-	fn := functions.SetFunc(funcArgs)
+	fn := modlet.SetFunc(funcArgs)
 
 	xpath := `//block[@name='terrStone']/drop[@event='Harvest' and @name='resourceRockSmall']/@count`
 	value := "999"
@@ -146,15 +108,15 @@ func TestWriteFunc(t *testing.T) {
 
 	buf := bytes.NewBuffer(nil)
 
-	funcArgs := common.FuncArgs{
-		FBuffer: &common.FileBuffer{
+	funcArgs := modlet.FuncArgs{
+		FBuffer: &modlet.FileBuffer{
 			Buffer: buf,
 			Writer: NewNopIO(t, buf), // Using stdout for testing
 		},
 		GBuffer: bytes.NewBufferString("Test content"),
 	}
 
-	fn := functions.WriteFunc(funcArgs)
+	fn := modlet.WriteFunc(funcArgs)
 	fn()
 
 	assert.Equal("Test content", funcArgs.FBuffer.Buffer.String(), "Buffer content should match")
@@ -165,11 +127,11 @@ func TestParseArgs(t *testing.T) {
 
 	inputs := []struct {
 		Args     []string
-		expected map[functions.Key]string
+		expected map[modlet.Key]string
 	}{
 		{
 			Args: []string{"by=2.25", "min=4", "max=25"},
-			expected: map[functions.Key]string{
+			expected: map[modlet.Key]string{
 				"by":  "2.25",
 				"max": "25",
 				"min": "4",
@@ -177,30 +139,30 @@ func TestParseArgs(t *testing.T) {
 		},
 		{
 			Args: []string{"By=2.25", "Min=4"},
-			expected: map[functions.Key]string{
+			expected: map[modlet.Key]string{
 				"by":  "2.25",
 				"min": "4",
 			},
 		},
 		{
 			Args: []string{"BY=2.25", "MIN=4"},
-			expected: map[functions.Key]string{
+			expected: map[modlet.Key]string{
 				"by":  "2.25",
 				"min": "4",
 			},
 		},
 		{
 			Args:     []string{"by=1", "invalid=foo"},
-			expected: map[functions.Key]string{"by": "1"},
+			expected: map[modlet.Key]string{"by": "1"},
 		},
 		{
 			Args:     []string{},
-			expected: map[functions.Key]string{},
+			expected: map[modlet.Key]string{},
 		},
 	}
 
 	for _, input := range inputs {
-		actual := functions.ParseArgs(input.Args)
+		actual := modlet.ParseArgs(input.Args)
 		assert.Equal(input.expected, actual, "ParseArgs should return the correct string")
 	}
 }
@@ -210,7 +172,7 @@ func TestParseArgsInvalid(t *testing.T) {
 
 	inputs := []struct {
 		Args     []string
-		expected map[functions.Key]string
+		expected map[modlet.Key]string
 	}{
 		{
 			Args: []string{"by="},
@@ -219,7 +181,7 @@ func TestParseArgsInvalid(t *testing.T) {
 
 	for _, input := range inputs {
 		require.Panics(t, func() {
-			functions.ParseArgs(input.Args)
+			modlet.ParseArgs(input.Args)
 		}, "invalid input (key or value is empty)")
 	}
 }
@@ -229,7 +191,7 @@ func TestMkPath(t *testing.T) {
 
 	path := "test/path/to/dir"
 
-	err := functions.MkPath(path)
+	err := modlet.MkPath(path)
 	assert.NoError(err, "Error creating directory")
 
 	exists, err := FS.DirExists(path)

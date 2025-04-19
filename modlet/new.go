@@ -11,7 +11,7 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 */
-package new
+package modlet
 
 import (
 	"fmt"
@@ -20,8 +20,6 @@ import (
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 type ModletFolder struct {
@@ -33,20 +31,31 @@ func (M *ModletFolder) Config() string {
 	return filepath.Join(M.Path, "Config")
 }
 
-func Run(name string, dir string) error {
+func New(args CmdArgs) error {
+	args.Sanitize()
+
+	var (
+		name  = args.Name
+		dir   = args.Output
+		force = args.Force
+	)
+
 	modlet := ModletFolder{
 		Name: name,
 		Path: filepath.Join(dir, name),
 	}
 
-	if !viper.GetBool("force") {
+	if !force {
 		if _, err := os.Stat(modlet.Path); !os.IsNotExist(err) {
 			return fmt.Errorf("modlet directory %q already exists -- refusing to overwrite", modlet.Path)
 		}
 	}
 
-	cobra.CheckErr(os.MkdirAll(modlet.Config(), 0755))
-	cobra.CheckErr(os.WriteFile(filepath.Join(modlet.Config(), ".keep"), []byte{}, 0644))
+	if err := os.MkdirAll(modlet.Config(), 0755); err != nil {
+		return fmt.Errorf("error creating modlet directory %q: %w", modlet.Path, err)
+	}
+
+	CheckErr(os.WriteFile(filepath.Join(modlet.Config(), ".keep"), []byte{}, 0644))
 
 	logger.Info("Created %s directories\n", modlet.Path)
 
@@ -54,12 +63,12 @@ func Run(name string, dir string) error {
 	if err != nil {
 		return err
 	}
-	cobra.CheckErr(os.WriteFile(filepath.Join(modlet.Path, "ModInfo.xml"), []byte(xml), 0644))
+	CheckErr(os.WriteFile(filepath.Join(modlet.Path, "ModInfo.xml"), []byte(xml), 0644))
 
 	logger.Debug("Wrote ModInfo.xml")
 
 	readme := []byte(fmt.Sprintf("# %s\n\nThis is the README for a new modlet created by the 7 Days Modlet Tools (7dtd-modtools).\n", modlet.Name))
-	cobra.CheckErr(os.WriteFile(filepath.Join(modlet.Path, "README.md"), readme, 0644))
+	CheckErr(os.WriteFile(filepath.Join(modlet.Path, "README.md"), readme, 0644))
 
 	logger.Debug("Wrote README.md")
 

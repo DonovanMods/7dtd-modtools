@@ -11,12 +11,13 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 */
-package functions
+package modlet
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"path/filepath"
 	"regexp"
@@ -26,7 +27,6 @@ import (
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
 	"github.com/donovanmods/7dtd-gamedata/modlet"
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
-	"github.com/donovanmods/7dtd-modtools/modlet/lib/common"
 )
 
 /*
@@ -45,6 +45,24 @@ const (
 )
 
 var outputFound bool
+
+type FileBuffer struct {
+	Buffer *bytes.Buffer
+	Writer io.WriteCloser
+}
+
+// Holds buffers and io.WriteCloser for each output file
+type FileBufferMap map[string]FileBuffer
+
+type FuncArgs struct {
+	Output  string
+	Gamedir string
+	ModInfo *modinfo.ModInfo
+	FBuffer *FileBuffer
+	GBuffer *bytes.Buffer
+	FBufMap FileBufferMap
+	Options map[string]string
+}
 
 func (k Key) String() string {
 	return string(k)
@@ -66,7 +84,7 @@ func (k Key) IsValid() bool {
 */
 
 // modlet sets up the modlet name and path
-func ModletFunc(fargs common.FuncArgs) func(string) null {
+func ModletFunc(fargs FuncArgs) func(string) null {
 	return func(name string) null {
 		name = strings.TrimSpace(name)
 
@@ -76,12 +94,12 @@ func ModletFunc(fargs common.FuncArgs) func(string) null {
 
 		path := filepath.Join(fargs.Output, name)
 
-		if e, err := common.FS.Exists(path); err != nil {
+		if e, err := FS.Exists(path); err != nil {
 			logger.Fatal("error checking for modlet %q: %w", name, err)
 		} else if e {
 			if fargs.Options["force"] == strconv.FormatBool(true) {
 				logger.Warn("modlet %q already exists, overwriting", name)
-				if err := common.FS.RemoveAll(path); err != nil {
+				if err := FS.RemoveAll(path); err != nil {
 					logger.Fatal("error removing existing modlet %q: %w", name, err)
 				}
 			} else {
@@ -102,7 +120,7 @@ func ModletFunc(fargs common.FuncArgs) func(string) null {
 	}
 }
 
-func MultFunc(fargs common.FuncArgs) func(string, ...string) string {
+func MultFunc(fargs FuncArgs) func(string, ...string) string {
 	return func(xpath string, args ...string) string {
 		var multiplier float64
 		var err error
@@ -133,7 +151,7 @@ func MultFunc(fargs common.FuncArgs) func(string, ...string) string {
 
 // output sets up the output file and creates a uniq buffer
 // func FuncOutput(fBuffer *fileBuffer, gBuffer *bytes.Buffer, fBufMap fileBufferMap, modInfo *modinfo.ModInfo) func(string) null {
-func OutputFunc(fargs common.FuncArgs) func(string) null {
+func OutputFunc(fargs FuncArgs) func(string) null {
 	return func(path string) null {
 		path = strings.TrimSpace(path)
 
@@ -154,14 +172,14 @@ func OutputFunc(fargs common.FuncArgs) func(string) null {
 			logger.Panic(err)
 		}
 
-		f, err := common.FS.Create(fullPath)
+		f, err := FS.Create(fullPath)
 		if err != nil {
 			logger.Fatal("error creating output file %s: %w", fullPath, err)
 		}
 
 		fargs.GBuffer.Reset()
 
-		fargs.FBufMap[fullPath] = common.FileBuffer{
+		fargs.FBufMap[fullPath] = FileBuffer{
 			Buffer: bytes.NewBuffer(nil),
 			Writer: f,
 		}
@@ -174,7 +192,7 @@ func OutputFunc(fargs common.FuncArgs) func(string) null {
 }
 
 // set produces a Set modlet instruction with the given xpath and value
-func SetFunc(fargs common.FuncArgs) func(string, string) string {
+func SetFunc(fargs FuncArgs) func(string, string) string {
 	return func(xpath string, value string) string {
 		return must(modlet.MkSet(xpath, value))
 	}
@@ -182,7 +200,7 @@ func SetFunc(fargs common.FuncArgs) func(string, string) string {
 
 // write writes the contents of the buffer to the output file
 // func FuncWrite(fBuffer *fileBuffer, gBuffer *bytes.Buffer) func() null {
-func WriteFunc(fargs common.FuncArgs) func() null {
+func WriteFunc(fargs FuncArgs) func() null {
 	return func() null {
 		if !outputFound || (*fargs.FBuffer).Writer == nil {
 			logger.Fatal("you've called `write` without providing an output file, please use `output <filepath>` before `write`")
@@ -254,11 +272,11 @@ func MkPath(path string) error {
 		return fmt.Errorf("invalid path %q", path)
 	}
 
-	_, err := common.FS.Stat(path)
+	_, err := FS.Stat(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		logger.Info("creating directory: %q", path)
 
-		if err := common.FS.MkdirAll(path, 0755); err != nil {
+		if err := FS.MkdirAll(path, 0755); err != nil {
 			return fmt.Errorf("unable to create directory %q: %w", path, err)
 		}
 	}

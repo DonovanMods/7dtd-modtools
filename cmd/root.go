@@ -40,7 +40,7 @@ var RootCmd = &cobra.Command{
 		viper.Set("color", !noColor)
 		viper.Set("verbosity", verbosity)
 
-		logger.SetLogger(verbosity)
+		logger.SetLogger(verbosity, !noColor)
 	},
 }
 

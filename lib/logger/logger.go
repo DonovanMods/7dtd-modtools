@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/pterm/pterm"
-	"github.com/spf13/viper"
 )
 
 // Global Log variable
@@ -15,10 +14,10 @@ var (
 )
 
 // SetLogger sets the default logger verbosity level and returns a logger instance
-func SetLogger(verbosity int) *pterm.Logger {
+func SetLogger(verbosity int, color bool) *pterm.Logger {
 	pterm.EnableColor()
 
-	if !viper.GetBool("color") {
+	if !color {
 		pterm.DisableColor()
 	}
 
@@ -85,6 +84,6 @@ func getLevel(verbosity int) pterm.LogLevel {
 
 func init() {
 	if Log == nil {
-		SetLogger(0)
+		SetLogger(0, false)
 	}
 }

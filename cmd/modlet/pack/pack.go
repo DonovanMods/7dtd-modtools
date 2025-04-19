@@ -31,14 +31,21 @@ var PackCmd = &cobra.Command{
 		if len(mods) == 0 || mods[0] == "" {
 			cobra.CheckErr(errors.New("mod directory is required"))
 		}
-		mdir := mods[0]
 
-		output := viper.GetString("output")
-		if output == "" {
-			cobra.CheckErr("output is required")
+		args := modlet.CmdArgs{
+			Name:     mods[0],
+			Input:    mods,
+			Compress: viper.GetBool("compress"),
+			Force:    viper.GetBool("force"),
 		}
 
-		cobra.CheckErr(modlet.Pack(mdir, output))
+		output, err := modlet.ValidateOutputDir(viper.GetString("output"))
+		if err != nil {
+			cobra.CheckErr(err)
+		}
+		args.Output = output
+
+		cobra.CheckErr(modlet.PackCmd(args))
 	},
 }
 

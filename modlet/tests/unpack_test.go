@@ -11,52 +11,14 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 */
-package unpack_test
+package modlet_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/donovanmods/7dtd-modtools/lib/logger"
-	"github.com/donovanmods/7dtd-modtools/modlet/lib/common"
-	"github.com/donovanmods/7dtd-modtools/modlet/unpack"
-	"github.com/spf13/afero"
-	"github.com/stretchr/testify/assert"
+	"github.com/donovanmods/7dtd-modtools/modlet"
 )
-
-var (
-	testTMP = "test_temp"
-	FS      = &afero.Afero{Fs: afero.NewMemMapFs()}
-)
-
-func mkTempDir(t *testing.T) string {
-	t.Helper()
-
-	if exists, err := afero.DirExists(FS, testTMP); err != nil {
-		t.Fatalf("Error checking for temp directory: %v", err)
-	} else if !exists {
-		err := FS.Mkdir(testTMP, 0700)
-		if err != nil {
-			t.Fatal(err)
-		}
-		logger.Info("Created temp directory: %s", testTMP)
-	}
-
-	return testTMP
-}
-
-func setup(t *testing.T) *assert.Assertions {
-	t.Helper()
-
-	logger.Testing = true
-
-	// Use MemMapFs for testing
-	common.FS = FS
-
-	mkTempDir(t)
-
-	return assert.New(t)
-}
 
 func TestValidateTemplate(t *testing.T) {
 	assert := setup(t)
@@ -107,7 +69,7 @@ func TestValidateTemplate(t *testing.T) {
 				}
 			}
 
-			err := unpack.ValidateTemplate(tt.tmplFile)
+			err := modlet.ValidateTemplate(tt.tmplFile)
 
 			if tt.wantErr {
 				assert.ErrorContains(err, tt.errorMsg)

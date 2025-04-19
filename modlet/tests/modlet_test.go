@@ -11,15 +11,14 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 */
-package common_test
+package modlet_test
 
 import (
 	"testing"
 
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
-	"github.com/donovanmods/7dtd-modtools/modlet/lib/common"
+	"github.com/donovanmods/7dtd-modtools/modlet"
 	"github.com/spf13/afero"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,7 +49,7 @@ func setup(t *testing.T) *assert.Assertions {
 	logger.Testing = true
 
 	// Use MemMapFs for testing
-	common.FS = FS
+	modlet.FS = FS
 
 	mkTempDir(t)
 
@@ -67,7 +66,7 @@ func cleanup(t *testing.T) {
 	logger.Info("Removed temp directory: %s", testTMP)
 }
 
-func TestOutputFile(t *testing.T) {
+func TestValidateOutputFile(t *testing.T) {
 	// Setup
 	assert := setup(t)
 	defer cleanup(t)
@@ -75,19 +74,18 @@ func TestOutputFile(t *testing.T) {
 	// Test cases
 	tests := []struct {
 		name     string
-		input    string
+		file     string
 		expected string
 		wantErr  bool
 	}{
-		{"valid", "test.txt", "test.txt", false},
-		{"empty", "", "", true},
+		{"valid output file", "test.txt", "test.txt", false},
+		{"output is directory", testTMP, "", true},
+		{"output is empty", "", "", true},
 	}
 
 	for _, test := range tests {
-		viper.Set("output", test.input)
-
 		t.Run(test.name, func(t *testing.T) {
-			result, err := common.OutputFile()
+			result, err := modlet.ValidateOutputFile(test.file)
 
 			if test.wantErr {
 				assert.Error(err)
@@ -100,29 +98,25 @@ func TestOutputFile(t *testing.T) {
 	}
 }
 
-func TestOutputDir(t *testing.T) {
+func TestValidateOutputDir(t *testing.T) {
 	// Setup
 	assert := setup(t)
 	defer cleanup(t)
 
 	// Test cases
 	tests := []struct {
-		name      string
-		input     string
-		expected  string
-		overwrite bool
-		wantErr   bool
+		name     string
+		dir      string
+		expected string
+		wantErr  bool
 	}{
-		{"valid overwrite", testTMP, testTMP, true, false},
-		{"valid error", testTMP, testTMP, false, true},
-		{"empty", "", ".", false, false},
+		{"valid dir with overwrite", testTMP, testTMP, false},
+		{"dir is empty", "", ".", false},
 	}
 
 	for _, test := range tests {
-		viper.Set("output", test.input)
-
 		t.Run(test.name, func(t *testing.T) {
-			actual, err := common.OutputDir(test.overwrite)
+			actual, err := modlet.ValidateOutputDir(test.dir)
 
 			if test.wantErr {
 				assert.Error(err)
@@ -131,6 +125,42 @@ func TestOutputDir(t *testing.T) {
 
 			assert.NoError(err)
 			assert.Equal(test.expected, actual)
+		})
+	}
+}
+
+func TestCmdArgsSanitize(t *testing.T) {
+	// Setup
+	assert := setup(t)
+	defer cleanup(t)
+
+	// Test cases
+	tests := []struct {
+		name     string
+		input    modlet.CmdArgs
+		expected modlet.CmdArgs
+	}{
+		{
+			name: "valid input",
+			input: modlet.CmdArgs{
+				Name:   "/test/",
+				Output: "//test.txt/",
+				Force:  true,
+			},
+			expected: modlet.CmdArgs{
+				Name:     "/test/",
+				Output:   "/test.txt",
+				Gamedir:  ".",
+				Compress: false,
+				Force:    true,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.input.Sanitize()
+			assert.Equal(test.expected, test.input)
 		})
 	}
 }

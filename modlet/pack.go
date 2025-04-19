@@ -11,7 +11,7 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 */
-package pack
+package modlet
 
 import (
 	"bufio"
@@ -27,8 +27,6 @@ import (
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
-	"github.com/donovanmods/7dtd-modtools/modlet/lib/common"
-	"github.com/spf13/viper"
 )
 
 type BufferMap map[string]*bytes.Buffer
@@ -40,13 +38,19 @@ var (
 	bufferMap       BufferMap = make(BufferMap)
 )
 
-func Run(moddir string, output string) error {
-	moddir = filepath.Clean(moddir)
-	output = filepath.Clean(output)
+func Pack(args CmdArgs) error {
+	args.Sanitize()
+
+	var (
+		moddir   = args.Input[0]
+		output   = args.Output
+		compress = args.Compress
+		force    = args.Force
+	)
 
 	logger.Info("Packing modlet from %s to %s", moddir, output)
 
-	if isDir, _ := common.FS.DirExists(moddir); !isDir {
+	if isDir, _ := FS.DirExists(moddir); !isDir {
 		return fmt.Errorf("modlet directory %s does not exist", moddir)
 	}
 
@@ -54,11 +58,11 @@ func Run(moddir string, output string) error {
 		return fmt.Errorf("error walking modlet directory: %w", err)
 	}
 
-	if err := common.FS.MkdirAll(output, 0755); err != nil {
+	if err := FS.MkdirAll(output, 0755); err != nil {
 		return fmt.Errorf("error creating output directory %s: %w", output, err)
 	}
 
-	if err := writeBufferMapToFile(output); err != nil {
+	if err := writeBufferMapToFile(output, compress, force); err != nil {
 		return fmt.Errorf("error writing modlet file: %w", err)
 	}
 
@@ -68,7 +72,7 @@ func Run(moddir string, output string) error {
 }
 
 func walkDir(dir string) error {
-	err := common.FS.Walk(dir, func(path string, info fs.FileInfo, err error) error {
+	err := FS.Walk(dir, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return fmt.Errorf("error walking modlet directory: %w", err)
 		}
@@ -121,7 +125,7 @@ func mkFileBlock(path string, relpath string) error {
 		return fmt.Errorf("error writing {{ output }} tag for %q: %w", relpath, err)
 	}
 
-	c, err := common.FS.ReadFile(path)
+	c, err := FS.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("error reading file %s: %w", path, err)
 	}
@@ -158,13 +162,10 @@ func writeOutput(key string, file io.Writer) error {
 	return nil
 }
 
-func writeBufferMapToFile(output string) error {
+func writeBufferMapToFile(output string, compress bool, force bool) error {
 	var (
-		// buffer = bytes.NewBuffer([]byte(fmt.Sprintf("{{- modlet %q -}}\n", modletName)))
-		// buffer = bytes.NewBuffer(nil)
 		gzWriter *gzip.Writer
 		writer   *bufio.Writer
-		compress = viper.GetBool("compress")
 	)
 
 	modletPath = filepath.Join(output, strings.ToLower(modletName+".tmpl"))
@@ -173,7 +174,7 @@ func writeBufferMapToFile(output string) error {
 		modletPath += ".gz"
 	}
 
-	file, err := common.FS.Create(modletPath)
+	file, err := FS.Create(modletPath)
 	if err != nil {
 		return err
 	}
@@ -185,8 +186,8 @@ func writeBufferMapToFile(output string) error {
 		writer = bufio.NewWriter(file)
 	}
 
-	if exists, err := common.FS.Exists(modletPath); err == nil && exists {
-		if !viper.GetBool("force") {
+	if exists, err := FS.Exists(modletPath); err == nil && exists {
+		if !force {
 			return fmt.Errorf("modlet file %s already exists, use --force to overwrite", modletPath)
 		}
 
@@ -227,7 +228,7 @@ func writeBufferMapToFile(output string) error {
 			return fmt.Errorf("error closing gzip writer: %w", err)
 		}
 	}
-	// if err := common.FS.WriteFile(modletPath, buffer.Bytes(), 0644); err != nil {
+	// if err := FS.WriteFile(modletPath, buffer.Bytes(), 0644); err != nil {
 	// 	return fmt.Errorf("error writing modlet file %s: %w", filepath.Join(output, modletPath), err)
 	// }
 
