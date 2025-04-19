@@ -17,15 +17,12 @@ var NewCmd = &cobra.Command{
 			cobra.CheckErr("please provide a Modlet name to use on the command line")
 		}
 
-		file, err := modlet.ValidateOutputFile(viper.GetString("output"))
-		if err != nil {
-			cobra.CheckErr(err)
-		}
-
-		cobra.CheckErr(modlet.NewCmd(modlet.CmdArgs{
-			Name:   name[0],
-			Output: file,
-			Force:  viper.GetBool("force"),
-		}))
+		cobra.CheckErr(modlet.CmdArgs{
+			Input:    name,
+			Output:   viper.GetString("output"),
+			Gamedir:  viper.GetString("gamedir"),
+			Compress: viper.GetBool("compress"),
+			Force:    viper.GetBool("force"),
+		}.NewModlet())
 	},
 }

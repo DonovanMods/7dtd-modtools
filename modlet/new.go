@@ -31,11 +31,11 @@ func (M *ModletFolder) Config() string {
 	return filepath.Join(M.Path, "Config")
 }
 
-func New(args CmdArgs) error {
+func NewModlet(args CmdArgs) error {
 	args.Sanitize()
 
 	var (
-		name  = args.Name
+		name  = args.Input[0]
 		dir   = args.Output
 		force = args.Force
 	)

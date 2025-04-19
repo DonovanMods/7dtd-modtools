@@ -66,69 +66,6 @@ func cleanup(t *testing.T) {
 	logger.Info("Removed temp directory: %s", testTMP)
 }
 
-func TestValidateOutputFile(t *testing.T) {
-	// Setup
-	assert := setup(t)
-	defer cleanup(t)
-
-	// Test cases
-	tests := []struct {
-		name     string
-		file     string
-		expected string
-		wantErr  bool
-	}{
-		{"valid output file", "test.txt", "test.txt", false},
-		{"output is directory", testTMP, "", true},
-		{"output is empty", "", "", true},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			result, err := modlet.ValidateOutputFile(test.file)
-
-			if test.wantErr {
-				assert.Error(err)
-				return
-			}
-
-			assert.NoError(err)
-			assert.Equal(test.expected, result)
-		})
-	}
-}
-
-func TestValidateOutputDir(t *testing.T) {
-	// Setup
-	assert := setup(t)
-	defer cleanup(t)
-
-	// Test cases
-	tests := []struct {
-		name     string
-		dir      string
-		expected string
-		wantErr  bool
-	}{
-		{"valid dir with overwrite", testTMP, testTMP, false},
-		{"dir is empty", "", ".", false},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			actual, err := modlet.ValidateOutputDir(test.dir)
-
-			if test.wantErr {
-				assert.Error(err)
-				return
-			}
-
-			assert.NoError(err)
-			assert.Equal(test.expected, actual)
-		})
-	}
-}
-
 func TestCmdArgsSanitize(t *testing.T) {
 	// Setup
 	assert := setup(t)
@@ -143,12 +80,10 @@ func TestCmdArgsSanitize(t *testing.T) {
 		{
 			name: "valid input",
 			input: modlet.CmdArgs{
-				Name:   "/test/",
 				Output: "//test.txt/",
 				Force:  true,
 			},
 			expected: modlet.CmdArgs{
-				Name:     "/test/",
 				Output:   "/test.txt",
 				Gamedir:  ".",
 				Compress: false,

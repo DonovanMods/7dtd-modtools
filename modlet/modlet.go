@@ -14,7 +14,6 @@ copies or substantial portions of the Software.
 package modlet
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -26,7 +25,6 @@ import (
 var FS = &afero.Afero{Fs: afero.NewOsFs()}
 
 type CmdArgs struct {
-	Name     string
 	Input    []string
 	Output   string
 	Gamedir  string
@@ -44,70 +42,23 @@ func (CA *CmdArgs) Sanitize() CmdArgs {
 	return *CA
 }
 
-func NewCmd(args CmdArgs) error {
-	return New(args)
+func (CA CmdArgs) NewModlet() error {
+	return NewModlet(CA)
 }
 
-func PackCmd(args CmdArgs) error {
-	return Pack(args)
+func (CA CmdArgs) PackModlet() error {
+	return Pack(CA)
 }
 
-func UnpackCmd(args CmdArgs) error {
+func (CA CmdArgs) UnpackModlet() error {
 	// gamedir string, output string) error {
-	for _, t := range args.Input {
-		if err := Unpack(t, args); err != nil {
+	for _, t := range CA.Input {
+		if err := Unpack(t, CA); err != nil {
 			// t, opts.Gamedir, opts.Output, opts.Force); err != nil {
 			return fmt.Errorf("error building modlet from template %s: %w", t, err)
 		}
 	}
 	return nil
-}
-
-func ValidateOutputFile(file string) (string, error) {
-	file = filepath.Clean(file)
-
-	if file == "" {
-		return "", fmt.Errorf("no output file not specified")
-	}
-
-	if dir, err := FS.IsDir(file); err != nil {
-		if !errors.Is(err, afero.ErrFileNotFound) {
-			return "", fmt.Errorf("error checking output %s: %w", file, err)
-		}
-	} else if dir {
-		return "", fmt.Errorf("output %s is a directory, want a file", file)
-	}
-
-	return file, nil
-}
-
-func ValidateOutputDir(dir string) (string, error) {
-	dir = filepath.Clean(dir)
-
-	if d, err := FS.IsDir(dir); err != nil {
-		return "", fmt.Errorf("error checking output %s: %w", dir, err)
-	} else if !d {
-		return "", fmt.Errorf("output %s is not a directory", dir)
-	}
-
-	logger.Debug("Output directory: %s", dir)
-
-	if dir == "." {
-		return dir, nil
-	}
-
-	exists, err := FS.Exists(dir)
-	if err != nil {
-		return "", fmt.Errorf("error checking output directory %s: %w", dir, err)
-	}
-
-	if !exists {
-		if err := FS.MkdirAll(dir, 0755); err != nil {
-			return "", fmt.Errorf("error creating output directory %s: %w", dir, err)
-		}
-	}
-
-	return dir, nil
 }
 
 func CheckErr(err error) {

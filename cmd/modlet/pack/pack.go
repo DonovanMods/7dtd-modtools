@@ -32,20 +32,13 @@ var PackCmd = &cobra.Command{
 			cobra.CheckErr(errors.New("mod directory is required"))
 		}
 
-		args := modlet.CmdArgs{
-			Name:     mods[0],
+		cobra.CheckErr(modlet.CmdArgs{
 			Input:    mods,
+			Output:   viper.GetString("output"),
+			Gamedir:  viper.GetString("gamedir"),
 			Compress: viper.GetBool("compress"),
 			Force:    viper.GetBool("force"),
-		}
-
-		output, err := modlet.ValidateOutputDir(viper.GetString("output"))
-		if err != nil {
-			cobra.CheckErr(err)
-		}
-		args.Output = output
-
-		cobra.CheckErr(modlet.PackCmd(args))
+		}.PackModlet())
 	},
 }
 

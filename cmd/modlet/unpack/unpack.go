@@ -35,16 +35,12 @@ var UnpackCmd = &cobra.Command{
 			cobra.CheckErr("gamedir is required")
 		}
 
-		outdir, err := modlet.ValidateOutputDir(viper.GetString("output"))
-		if err != nil {
-			cobra.CheckErr(err)
-		}
-
-		cobra.CheckErr(modlet.UnpackCmd(modlet.CmdArgs{
-			Input:   templates,
-			Output:  outdir,
-			Gamedir: gamedir,
-			Force:   viper.GetBool("force"),
-		}))
+		cobra.CheckErr(modlet.CmdArgs{
+			Input:    templates,
+			Output:   viper.GetString("output"),
+			Gamedir:  gamedir,
+			Compress: viper.GetBool("compress"),
+			Force:    viper.GetBool("force"),
+		}.UnpackModlet())
 	},
 }
