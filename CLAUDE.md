@@ -78,8 +78,12 @@ Always set `logger.Testing = true` in tests to prevent `os.Exit()` calls.
 
 - **Cobra/Viper** - CLI framework and configuration
 - **Afero** - Filesystem abstraction (swap real FS for memory FS in tests)
-- **7dtd-gamedata** - Game data parsing library (ModInfo, modlet structures)
+- **7dtd-gamedata** - Game data parsing library (ModInfo, modlet structures) - see below
 - **pterm** - Terminal output formatting
+
+## Related Project: 7dtd-gamedata
+
+The `github.com/donovanmods/7dtd-gamedata` library is a sibling project located at `~/Projects/apps/7dtd-gamedata`. It provides core game data parsing (ModInfo, Modlet structs) and is primarily built for use by this tool. Both projects share the same owner, so the library can be modified alongside this tool as needed.
 
 ## Template Functions
 
