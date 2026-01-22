@@ -46,16 +46,16 @@ func NewModlet(args CmdArgs) error {
 	}
 
 	if !force {
-		if _, err := os.Stat(modlet.Path); !os.IsNotExist(err) {
+		if _, err := FS.Stat(modlet.Path); !os.IsNotExist(err) {
 			return fmt.Errorf("modlet directory %q already exists -- refusing to overwrite", modlet.Path)
 		}
 	}
 
-	if err := os.MkdirAll(modlet.Config(), 0755); err != nil {
+	if err := FS.MkdirAll(modlet.Config(), 0755); err != nil {
 		return fmt.Errorf("error creating modlet directory %q: %w", modlet.Path, err)
 	}
 
-	CheckErr(os.WriteFile(filepath.Join(modlet.Config(), ".keep"), []byte{}, 0644))
+	CheckErr(FS.WriteFile(filepath.Join(modlet.Config(), ".keep"), []byte{}, 0644))
 
 	logger.Info("Created %s directories\n", modlet.Path)
 
@@ -63,12 +63,12 @@ func NewModlet(args CmdArgs) error {
 	if err != nil {
 		return err
 	}
-	CheckErr(os.WriteFile(filepath.Join(modlet.Path, "ModInfo.xml"), []byte(xml), 0644))
+	CheckErr(FS.WriteFile(filepath.Join(modlet.Path, "ModInfo.xml"), []byte(xml), 0644))
 
 	logger.Debug("Wrote ModInfo.xml")
 
 	readme := []byte(fmt.Sprintf("# %s\n\nThis is the README for a new modlet created by the 7 Days Modlet Tools (7dtd-modtools).\n", modlet.Name))
-	CheckErr(os.WriteFile(filepath.Join(modlet.Path, "README.md"), readme, 0644))
+	CheckErr(FS.WriteFile(filepath.Join(modlet.Path, "README.md"), readme, 0644))
 
 	logger.Debug("Wrote README.md")
 

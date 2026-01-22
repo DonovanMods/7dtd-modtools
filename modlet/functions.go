@@ -15,6 +15,7 @@ package modlet
 
 import (
 	"bytes"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -120,6 +121,8 @@ func ModletFunc(fargs FuncArgs) func(string) null {
 	}
 }
 
+// MultFunc creates a multiplier instruction for modlet templates.
+// TODO: min and max parameters are parsed but not yet applied to the result.
 func MultFunc(fargs FuncArgs) func(string, ...string) string {
 	return func(xpath string, args ...string) string {
 		var multiplier float64
@@ -145,7 +148,9 @@ func MultFunc(fargs FuncArgs) func(string, ...string) string {
 			}
 		}
 
-		return must(modlet.MkSet(xpath, strconv.FormatFloat(multiplier, 'f', -1, 64)))
+		// TODO: Apply min/max bounds from pargs["min"] and pargs["max"] if provided
+
+		return must(mkSet(xpath, strconv.FormatFloat(multiplier, 'f', -1, 64)))
 	}
 }
 
@@ -194,7 +199,7 @@ func OutputFunc(fargs FuncArgs) func(string) null {
 // set produces a Set modlet instruction with the given xpath and value
 func SetFunc(fargs FuncArgs) func(string, string) string {
 	return func(xpath string, value string) string {
-		return must(modlet.MkSet(xpath, value))
+		return must(mkSet(xpath, value))
 	}
 }
 
@@ -262,6 +267,22 @@ func must(output string, err error) string {
 	}
 
 	return output
+}
+
+// mkSet creates a Set modlet instruction XML string
+func mkSet(xpath string, value string) (string, error) {
+	m := modlet.Modlet{
+		XMLName: xml.Name{Local: "set"},
+		XPath:   xpath,
+		Value:   value,
+	}
+	b, err := xml.Marshal(m)
+	if err != nil {
+		return "", fmt.Errorf("error marshaling set instruction: %w", err)
+	}
+	// Unescape single quotes that xml.Marshal escapes (7DTD expects unescaped quotes in XPath)
+	result := strings.ReplaceAll(string(b), "&#39;", "'")
+	return result, nil
 }
 
 // Helper function to create a directory if it doesn't exist

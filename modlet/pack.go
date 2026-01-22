@@ -91,10 +91,15 @@ func walkDir(dir string) error {
 			logger.Info("Packing file: %s", relPath)
 
 			if strings.EqualFold(info.Name(), "modinfo.xml") {
-				miXML, err := modinfo.Parse(path)
+				modInfos, err := modinfo.ParseDir(modinfo.ParseOpts{Directory: filepath.Dir(path)})
 				if err != nil {
 					return fmt.Errorf("error parsing modinfo.xml: %w", err)
 				}
+				if len(*modInfos) == 0 {
+					return fmt.Errorf("no modinfo found in directory")
+				}
+				// Get the first (and should be only) ModInfo from the directory
+				miXML := (*modInfos)[0]
 				modletName = miXML.GetValue("name")
 				if modletName == "" {
 					return fmt.Errorf("modlet name not found in modinfo.xml")
@@ -174,6 +179,14 @@ func writeBufferMapToFile(output string, compress bool, force bool) error {
 		modletPath += ".gz"
 	}
 
+	// Check if file exists before creating it
+	if exists, err := FS.Exists(modletPath); err == nil && exists {
+		if !force {
+			return fmt.Errorf("modlet file %s already exists, use --force to overwrite", modletPath)
+		}
+		logger.Warn("Overwriting existing modlet file %s", modletPath)
+	}
+
 	file, err := FS.Create(modletPath)
 	if err != nil {
 		return err
@@ -184,14 +197,6 @@ func writeBufferMapToFile(output string, compress bool, force bool) error {
 		writer = bufio.NewWriter(gzWriter)
 	} else {
 		writer = bufio.NewWriter(file)
-	}
-
-	if exists, err := FS.Exists(modletPath); err == nil && exists {
-		if !force {
-			return fmt.Errorf("modlet file %s already exists, use --force to overwrite", modletPath)
-		}
-
-		logger.Warn("Overwriting existing modlet file %s", modletPath)
 	}
 
 	// Write template modlet name
