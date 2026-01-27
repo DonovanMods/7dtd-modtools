@@ -226,3 +226,15 @@ func TestMultFuncWithBounds(t *testing.T) {
 	result = fn("//test/@value", "by=0.1", "min=2", "max=10")
 	assert.Contains(result, ">2<")
 }
+
+func TestCommentFunc(t *testing.T) {
+	_ = setup(t)
+
+	fn := modlet.CommentFunc()
+
+	result := fn("This is a comment")
+	require.Equal(t, "<!-- This is a comment -->", result)
+
+	result = fn("Multiple\nlines")
+	require.Equal(t, "<!-- Multiple\nlines -->", result)
+}

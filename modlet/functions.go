@@ -229,6 +229,13 @@ func SetFunc(fargs FuncArgs) func(string, string) string {
 	}
 }
 
+// CommentFunc returns an XML comment string
+func CommentFunc() func(string) string {
+	return func(text string) string {
+		return fmt.Sprintf("<!-- %s -->", text)
+	}
+}
+
 // write writes the contents of the buffer to the output file
 // func FuncWrite(fBuffer *fileBuffer, gBuffer *bytes.Buffer) func() null {
 func WriteFunc(fargs FuncArgs) func() null {
