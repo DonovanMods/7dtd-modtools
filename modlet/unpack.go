@@ -173,6 +173,7 @@ func NewTemplate(tmpl string, name string, fargs FuncArgs) (*template.Template, 
 			"write":     WriteFunc(fargs),
 			"xmlHeader": func() string { return xml.Header },
 			"comment":   CommentFunc(),
+			"prob":      ProbFunc(fargs),
 		}).
 		Parse(string(data))
 }

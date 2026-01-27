@@ -238,3 +238,22 @@ func TestCommentFunc(t *testing.T) {
 	result = fn("Multiple\nlines")
 	require.Equal(t, "<!-- Multiple\nlines -->", result)
 }
+
+func TestProbFunc(t *testing.T) {
+	assert := setup(t)
+
+	funcArgs := modlet.FuncArgs{
+		ModInfo: &modinfo.ModInfo{},
+	}
+
+	fn := modlet.ProbFunc(funcArgs)
+
+	// Normal multiplication
+	result := fn("//block/@prob", "0.3", "by=1.5")
+	assert.Contains(result, "<set")
+	assert.Contains(result, "0.45")
+
+	// Capped at 1.0
+	result = fn("//block/@prob", "0.8", "by=1.5")
+	assert.Contains(result, ">1<")
+}

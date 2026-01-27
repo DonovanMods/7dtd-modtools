@@ -236,6 +236,30 @@ func CommentFunc() func(string) string {
 	}
 }
 
+// ProbFunc creates a probability instruction with value capped at 1.0
+func ProbFunc(fargs FuncArgs) func(string, string, ...string) string {
+	return func(xpath string, value string, args ...string) string {
+		xpath = strings.TrimSpace(xpath)
+		if xpath == "" {
+			logger.Fatal("xpath must be provided to the prob command")
+		}
+
+		pargs := ParseArgs(args)
+
+		multiplier := 1.0
+
+		if by, ok := pargs["by"]; ok && by != "" {
+			var err error
+			if multiplier, err = strconv.ParseFloat(by, 64); err != nil {
+				logger.Fatal("error parsing multiplier %q: %w", by, err)
+			}
+		}
+
+		result := ProbMult(value, multiplier)
+		return must(mkSet(xpath, result))
+	}
+}
+
 // write writes the contents of the buffer to the output file
 // func FuncWrite(fBuffer *fileBuffer, gBuffer *bytes.Buffer) func() null {
 func WriteFunc(fargs FuncArgs) func() null {
