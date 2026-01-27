@@ -25,7 +25,7 @@ lint:
     - shfmt@3.6.0
     - golangci-lint2@2.8.0
     - gofumpt@0.5.0
-    - checkov@3.2.497
+    - checkov@3.2.499
     - git-diff-check
     - markdownlint@0.47.0
     - osv-scanner@2.3.2

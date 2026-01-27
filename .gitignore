@@ -5,3 +5,4 @@ go.work*
 # Added by goreleaser init:
 dist/
 .claude/settings.local.json
+.ralphy/
