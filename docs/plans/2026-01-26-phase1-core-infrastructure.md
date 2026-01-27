@@ -10,12 +10,66 @@
 
 ---
 
-## Task 1: Add DropEvents Method to Block Type (7dtd-gamedata)
+## Critical Context
+
+### Repository Locations
+
+| Repository        | Path                                            | Purpose                      |
+| ----------------- | ----------------------------------------------- | ---------------------------- |
+| **7dtd-gamedata** | `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata` | Library for parsing game XML |
+| **7dtd-modtools** | `/home/dyoung/Projects/mods/7dtd/7dtd-modtools` | CLI tool (this project)      |
+
+**IMPORTANT:** Tasks 1-3 work in `7dtd-gamedata`. Tasks 4+ work in `7dtd-modtools`. Always verify your working directory before running commands.
+
+### Files to Read Before Starting
+
+Before implementing ANY task, read these files to understand existing patterns:
+
+**In 7dtd-gamedata:**
+
+- `gamexml/blocks.go` - Existing Block struct
+- `gamexml/entityclasses.go` - Existing EntityClass struct
+- `gamexml/gamexml.go` - Common types (Property, Tags)
+- `gamexml/tests/blocks_test.go` - Test patterns
+
+**In 7dtd-modtools:**
+
+- `modlet/functions.go` - Existing template functions and FuncArgs struct
+- `modlet/unpack.go` - Template execution flow
+- `modlet/tests/modlet_test.go` - Test setup pattern (afero MemMapFs, logger.Testing)
+- `modlet/tests/functions_test.go` - Function test patterns
+
+### Testing Conventions
+
+Both projects use these patterns:
+
+```go
+// In 7dtd-modtools tests:
+func setup(t *testing.T) *assert.Assertions {
+    t.Helper()
+    logger.Testing = true  // CRITICAL: prevents os.Exit()
+    modlet.FS = FS         // Use in-memory filesystem
+    mkTempDir(t)
+    return assert.New(t)
+}
+```
+
+**Always set `logger.Testing = true`** in tests to prevent panics from becoming `os.Exit()` calls.
+
+---
+
+## Task 1: Add DropEvents Method to Block Type
+
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata`
+
+**Read First:**
+
+- `gamexml/blocks.go` - Understand Block struct and existing Events field
 
 **Files:**
 
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata/gamexml/blocks.go`
-- Create: `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata/gamexml/tests/blocks_methods_test.go`
+- Modify: `gamexml/blocks.go`
+- Create: `gamexml/tests/blocks_methods_test.go`
 
 **Step 1: Write the failing test**
 
@@ -56,12 +110,16 @@ func TestBlockDropEvents(t *testing.T) {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata && go test -v -run TestBlockDropEvents ./gamexml/tests/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata
+go test -v -run TestBlockDropEvents ./gamexml/tests/
+```
+
 Expected: FAIL with "block.DropEvents undefined"
 
 **Step 3: Write minimal implementation**
 
-Add to `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata/gamexml/blocks.go`:
+Add to `gamexml/blocks.go`:
 
 ```go
 // DropEvents returns all drop events matching the given event type (e.g., "Harvest", "Destroy")
@@ -78,7 +136,11 @@ func (b Block) DropEvents(event string) []DropEvent {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata && go test -v -run TestBlockDropEvents ./gamexml/tests/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata
+go test -v -run TestBlockDropEvents ./gamexml/tests/
+```
+
 Expected: PASS
 
 **Step 5: Commit**
@@ -91,19 +153,25 @@ git commit -m "feat(gamexml): add DropEvents method to Block type"
 
 ---
 
-## Task 2: Add Property and HasProperty Methods to Block Type (7dtd-gamedata)
+## Task 2: Add GetProperty and HasProperty Methods to Block Type
+
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata`
+
+**Read First:**
+
+- `gamexml/blocks.go` - Note that `Property` is a field name, so method must be named differently
 
 **Files:**
 
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata/gamexml/blocks.go`
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata/gamexml/tests/blocks_methods_test.go`
+- Modify: `gamexml/blocks.go`
+- Modify: `gamexml/tests/blocks_methods_test.go`
 
 **Step 1: Write the failing test**
 
-Add to `blocks_methods_test.go`:
+Add to `gamexml/tests/blocks_methods_test.go`:
 
 ```go
-func TestBlockProperty(t *testing.T) {
+func TestBlockGetProperty(t *testing.T) {
 	block := gamexml.Block{
 		Name: "terrStone",
 		Property: []gamexml.Property{
@@ -113,9 +181,9 @@ func TestBlockProperty(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, "Mite", block.Property("Material"))
-	assert.Equal(t, "1", block.Property("TerrainIndex"))
-	assert.Equal(t, "", block.Property("NonExistent"))
+	assert.Equal(t, "Mite", block.GetProperty("Material"))
+	assert.Equal(t, "1", block.GetProperty("TerrainIndex"))
+	assert.Equal(t, "", block.GetProperty("NonExistent"))
 }
 
 func TestBlockHasProperty(t *testing.T) {
@@ -133,12 +201,16 @@ func TestBlockHasProperty(t *testing.T) {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata && go test -v -run TestBlockProperty ./gamexml/tests/`
-Expected: FAIL with "block.Property undefined" (method conflicts with field)
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata
+go test -v -run "TestBlock(GetProperty|HasProperty)" ./gamexml/tests/
+```
+
+Expected: FAIL with "block.GetProperty undefined"
 
 **Step 3: Write minimal implementation**
 
-Add to `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata/gamexml/blocks.go`:
+Add to `gamexml/blocks.go`:
 
 ```go
 // GetProperty returns the value of a property by name, or empty string if not found
@@ -162,31 +234,16 @@ func (b Block) HasProperty(name string) bool {
 }
 ```
 
-**Step 4: Update test to use GetProperty instead of Property**
+**Step 4: Run test to verify it passes**
 
-```go
-func TestBlockGetProperty(t *testing.T) {
-	block := gamexml.Block{
-		Name: "terrStone",
-		Property: []gamexml.Property{
-			{Name: "Material", Value: "Mite"},
-			{Name: "TerrainIndex", Value: "1"},
-			{Name: "Shape", Value: "Terrain"},
-		},
-	}
-
-	assert.Equal(t, "Mite", block.GetProperty("Material"))
-	assert.Equal(t, "1", block.GetProperty("TerrainIndex"))
-	assert.Equal(t, "", block.GetProperty("NonExistent"))
-}
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata
+go test -v -run "TestBlock(GetProperty|HasProperty)" ./gamexml/tests/
 ```
 
-**Step 5: Run test to verify it passes**
-
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata && go test -v -run "TestBlock(GetProperty|HasProperty)" ./gamexml/tests/`
 Expected: PASS
 
-**Step 6: Commit**
+**Step 5: Commit**
 
 ```bash
 cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata
@@ -196,12 +253,19 @@ git commit -m "feat(gamexml): add GetProperty and HasProperty methods to Block t
 
 ---
 
-## Task 3: Add DropEvents Method to EntityClass Type (7dtd-gamedata)
+## Task 3: Add DropEvents Field and Method to EntityClass Type
+
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata`
+
+**Read First:**
+
+- `gamexml/entityclasses.go` - Note EntityClass currently has NO DropEvents field
+- `gamexml/blocks.go` - Reference the DropEvent type definition
 
 **Files:**
 
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata/gamexml/entityclasses.go`
-- Create: `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata/gamexml/tests/entityclasses_methods_test.go`
+- Modify: `gamexml/entityclasses.go`
+- Create: `gamexml/tests/entityclasses_methods_test.go`
 
 **Step 1: Write the failing test**
 
@@ -216,8 +280,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEntityClassDropEvents(t *testing.T) {
-	// Note: EntityClass doesn't have Events field yet - we need to add it
+func TestEntityClassGetDropEvents(t *testing.T) {
 	entity := gamexml.EntityClass{
 		Name: "animalChicken",
 		DropEvents: []gamexml.DropEvent{
@@ -238,12 +301,16 @@ func TestEntityClassDropEvents(t *testing.T) {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata && go test -v -run TestEntityClassDropEvents ./gamexml/tests/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata
+go test -v -run TestEntityClassGetDropEvents ./gamexml/tests/
+```
+
 Expected: FAIL with "unknown field 'DropEvents' in struct literal"
 
 **Step 3: Write minimal implementation**
 
-First, add DropEvents field to EntityClass in `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata/gamexml/entityclasses.go`:
+Modify `gamexml/entityclasses.go` - add DropEvents field and method:
 
 ```go
 type EntityClass struct {
@@ -251,7 +318,7 @@ type EntityClass struct {
 	Name        string        `xml:"name,attr"`
 	Property    []Property    `xml:"property,omitempty"`
 	EffectGroup []EffectGroup `xml:"effect_group,omitempty"`
-	DropEvents  []DropEvent   `xml:"drop,omitempty"` // Add this line
+	DropEvents  []DropEvent   `xml:"drop,omitempty"` // ADD THIS LINE
 }
 
 // GetDropEvents returns all drop events matching the given event type
@@ -268,7 +335,11 @@ func (e EntityClass) GetDropEvents(event string) []DropEvent {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata && go test -v -run TestEntityClassDropEvents ./gamexml/tests/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata
+go test -v -run TestEntityClassGetDropEvents ./gamexml/tests/
+```
+
 Expected: PASS
 
 **Step 5: Commit**
@@ -281,32 +352,60 @@ git commit -m "feat(gamexml): add DropEvents field and GetDropEvents method to E
 
 ---
 
-## Task 4: Create GameData Loader in modtools
+## CHECKPOINT A: Verify 7dtd-gamedata
+
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-gamedata`
+
+**Run all tests and verify everything passes before continuing:**
+
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata
+go test -v ./...
+```
+
+**Expected:** All tests PASS (existing tests + 3 new test functions)
+
+**If any test fails:** STOP and fix before proceeding to Task 4.
+
+---
+
+## Task 4: Create GameData Loader Package
+
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-modtools`
+
+**Read First:**
+
+- `go.mod` - Note the `replace` directive for 7dtd-gamedata
+- `modlet/modlet.go` - See how afero.Afero is used (FS variable pattern)
 
 **Files:**
 
-- Create: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/gamedata/gamedata.go`
-- Create: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/gamedata/gamedata_test.go`
+- Create: `gamedata/gamedata.go`
+- Create: `gamedata/gamedata_test.go`
 
 **Step 1: Write the failing test**
 
 ```go
-// gamedata_test.go
+// gamedata/gamedata_test.go
 package gamedata_test
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/donovanmods/7dtd-modtools/gamedata"
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestLoadGameData(t *testing.T) {
-	// Create temp directory with test XML files
-	tmpDir := t.TempDir()
+	// Use in-memory filesystem
+	fs := &afero.Afero{Fs: afero.NewMemMapFs()}
+	gamedata.FS = fs
+
+	tmpDir := "/tmp/gamedata"
+	require.NoError(t, fs.MkdirAll(tmpDir, 0755))
 
 	blocksXML := `<?xml version="1.0" encoding="UTF-8"?>
 <blocks>
@@ -327,8 +426,8 @@ func TestLoadGameData(t *testing.T) {
 	</entity_class>
 </entity_classes>`
 
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "blocks.xml"), []byte(blocksXML), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "entityclasses.xml"), []byte(entityClassesXML), 0644))
+	require.NoError(t, fs.WriteFile(filepath.Join(tmpDir, "blocks.xml"), []byte(blocksXML), 0644))
+	require.NoError(t, fs.WriteFile(filepath.Join(tmpDir, "entityclasses.xml"), []byte(entityClassesXML), 0644))
 
 	gd, err := gamedata.Load(tmpDir)
 	require.NoError(t, err)
@@ -344,23 +443,30 @@ func TestLoadGameData(t *testing.T) {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run TestLoadGameData ./gamedata/`
-Expected: FAIL with "package gamedata is not in GOROOT"
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v -run TestLoadGameData ./gamedata/
+```
+
+Expected: FAIL with "package gamedata is not in GOROOT" or similar
 
 **Step 3: Write minimal implementation**
 
 ```go
-// gamedata.go
+// gamedata/gamedata.go
 package gamedata
 
 import (
 	"encoding/xml"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/donovanmods/7dtd-gamedata/gamexml"
+	"github.com/spf13/afero"
 )
+
+// FS is the filesystem to use (can be swapped for testing)
+var FS = &afero.Afero{Fs: afero.NewOsFs()}
 
 // GameData holds parsed game XML data
 type GameData struct {
@@ -388,7 +494,7 @@ func Load(gamedir string) (*GameData, error) {
 }
 
 func (gd *GameData) loadBlocks(path string) error {
-	data, err := os.ReadFile(path)
+	data, err := FS.ReadFile(path)
 	if err != nil {
 		return err
 	}
@@ -403,7 +509,7 @@ func (gd *GameData) loadBlocks(path string) error {
 }
 
 func (gd *GameData) loadEntityClasses(path string) error {
-	data, err := os.ReadFile(path)
+	data, err := FS.ReadFile(path)
 	if err != nil {
 		return err
 	}
@@ -418,12 +524,23 @@ func (gd *GameData) loadEntityClasses(path string) error {
 }
 ```
 
-**Step 4: Run test to verify it passes**
+**Step 4: Run go mod tidy**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run TestLoadGameData ./gamedata/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go mod tidy
+```
+
+**Step 5: Run test to verify it passes**
+
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v -run TestLoadGameData ./gamedata/
+```
+
 Expected: PASS
 
-**Step 5: Commit**
+**Step 6: Commit**
 
 ```bash
 cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
@@ -433,17 +550,24 @@ git commit -m "feat(gamedata): add GameData loader for blocks and entityclasses"
 
 ---
 
-## Task 5: Add String Helper Functions to Template System
+## Task 5: Add String Helper Functions
+
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-modtools`
+
+**Read First:**
+
+- `modlet/functions.go` - See existing function patterns
+- `lib/logger/logger.go` - Understand logger.Error usage
 
 **Files:**
 
-- Create: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/helpers.go`
-- Create: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/tests/helpers_test.go`
+- Create: `modlet/helpers.go`
+- Create: `modlet/tests/helpers_test.go`
 
 **Step 1: Write the failing test**
 
 ```go
-// helpers_test.go
+// modlet/tests/helpers_test.go
 package modlet_test
 
 import (
@@ -479,41 +603,33 @@ func TestNotMatch(t *testing.T) {
 }
 
 func TestMultValue(t *testing.T) {
-	// Simple integer
 	assert.Equal(t, "82", modlet.MultValue("55", 1.5))
-
-	// Float result rounds
 	assert.Equal(t, "8", modlet.MultValue("5", 1.5))
-
-	// CSV values
 	assert.Equal(t, "15,30,45", modlet.MultValue("10,20,30", 1.5))
-
-	// Empty returns "0"
 	assert.Equal(t, "0", modlet.MultValue("", 1.5))
 }
 
 func TestProbMult(t *testing.T) {
-	// Normal multiplication
 	assert.Equal(t, "0.45", modlet.ProbMult("0.3", 1.5))
-
-	// Cap at 1.0
 	assert.Equal(t, "1", modlet.ProbMult("0.8", 1.5))
 	assert.Equal(t, "1", modlet.ProbMult("0.9", 2.0))
-
-	// Already 1.0
 	assert.Equal(t, "1", modlet.ProbMult("1.0", 1.5))
 }
 ```
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run "Test(HasPrefix|HasSuffix|Match|NotMatch|MultValue|ProbMult)" ./modlet/tests/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v -run "Test(HasPrefix|HasSuffix|Match|NotMatch|MultValue|ProbMult)" ./modlet/tests/
+```
+
 Expected: FAIL with "undefined: modlet.HasPrefix"
 
 **Step 3: Write minimal implementation**
 
 ```go
-// helpers.go
+// modlet/helpers.go
 package modlet
 
 import (
@@ -591,7 +707,6 @@ func ProbMult(value string, factor float64) string {
 		result = 1.0
 	}
 
-	// Format without trailing zeros
 	formatted := strconv.FormatFloat(result, 'f', -1, 64)
 	return formatted
 }
@@ -599,7 +714,11 @@ func ProbMult(value string, factor float64) string {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run "Test(HasPrefix|HasSuffix|Match|NotMatch|MultValue|ProbMult)" ./modlet/tests/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v -run "Test(HasPrefix|HasSuffix|Match|NotMatch|MultValue|ProbMult)" ./modlet/tests/
+```
+
 Expected: PASS
 
 **Step 5: Commit**
@@ -614,14 +733,21 @@ git commit -m "feat(modlet): add string helper functions for templates"
 
 ## Task 6: Complete mult Function with min/max Bounds
 
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-modtools`
+
+**Read First:**
+
+- `modlet/functions.go:124-155` - Current MultFunc implementation with TODO comment
+- `modlet/tests/functions_test.go` - Existing test patterns
+
 **Files:**
 
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/functions.go`
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/tests/functions_test.go`
+- Modify: `modlet/functions.go`
+- Modify: `modlet/tests/functions_test.go`
 
 **Step 1: Write the failing test**
 
-Add to `functions_test.go`:
+Add to `modlet/tests/functions_test.go`:
 
 ```go
 func TestMultFuncWithBounds(t *testing.T) {
@@ -641,26 +767,30 @@ func TestMultFuncWithBounds(t *testing.T) {
 
 	// With min bound - result should be clamped to min
 	result = fn("//test/@value", "by=0.5", "min=1")
-	assert.Contains(result, ">1<") // Result clamped to min=1
+	assert.Contains(result, ">1<")
 
 	// With max bound - result should be clamped to max
 	result = fn("//test/@value", "by=10.0", "max=5")
-	assert.Contains(result, ">5<") // Result clamped to max=5
+	assert.Contains(result, ">5<")
 
 	// Both bounds
 	result = fn("//test/@value", "by=0.1", "min=2", "max=10")
-	assert.Contains(result, ">2<") // Result clamped to min=2
+	assert.Contains(result, ">2<")
 }
 ```
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run TestMultFuncWithBounds ./modlet/tests/`
-Expected: FAIL (min/max not applied)
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v -run TestMultFuncWithBounds ./modlet/tests/
+```
 
-**Step 3: Update implementation**
+Expected: FAIL (min/max not applied, test assertions fail)
 
-Replace `MultFunc` in `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/functions.go`:
+**Step 3: Replace MultFunc implementation**
+
+In `modlet/functions.go`, replace the entire `MultFunc` function (lines ~124-155):
 
 ```go
 // MultFunc creates a multiplier instruction for modlet templates.
@@ -725,7 +855,11 @@ func MultFunc(fargs FuncArgs) func(string, ...string) string {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run TestMultFuncWithBounds ./modlet/tests/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v -run TestMultFuncWithBounds ./modlet/tests/
+```
+
 Expected: PASS
 
 **Step 5: Commit**
@@ -740,38 +874,49 @@ git commit -m "feat(modlet): complete mult function with min/max bounds"
 
 ## Task 7: Add comment Template Function
 
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-modtools`
+
+**Read First:**
+
+- `modlet/functions.go` - See existing function patterns, note `fmt` may need to be added to imports
+- `modlet/unpack.go:167-176` - Where FuncMap is defined
+
 **Files:**
 
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/functions.go`
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/unpack.go`
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/tests/functions_test.go`
+- Modify: `modlet/functions.go`
+- Modify: `modlet/unpack.go`
+- Modify: `modlet/tests/functions_test.go`
 
 **Step 1: Write the failing test**
 
-Add to `functions_test.go`:
+Add to `modlet/tests/functions_test.go`:
 
 ```go
 func TestCommentFunc(t *testing.T) {
-	assert := setup(t)
+	_ = setup(t)
 
 	fn := modlet.CommentFunc()
 
 	result := fn("This is a comment")
-	assert.Equal("<!-- This is a comment -->", result)
+	assert.New(t).Equal("<!-- This is a comment -->", result)
 
 	result = fn("Multiple\nlines")
-	assert.Equal("<!-- Multiple\nlines -->", result)
+	assert.New(t).Equal("<!-- Multiple\nlines -->", result)
 }
 ```
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run TestCommentFunc ./modlet/tests/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v -run TestCommentFunc ./modlet/tests/
+```
+
 Expected: FAIL with "undefined: modlet.CommentFunc"
 
-**Step 3: Write minimal implementation**
+**Step 3: Add CommentFunc to functions.go**
 
-Add to `functions.go`:
+Add to `modlet/functions.go` (ensure `"fmt"` is in imports):
 
 ```go
 // CommentFunc returns an XML comment string
@@ -782,29 +927,21 @@ func CommentFunc() func(string) string {
 }
 ```
 
-Add to imports in `functions.go` if not present: `"fmt"`
+**Step 4: Register in unpack.go FuncMap**
 
-**Step 4: Register function in unpack.go NewTemplate**
-
-In `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/unpack.go`, update `NewTemplate`:
+In `modlet/unpack.go`, update the `Funcs(template.FuncMap{...})` block to add:
 
 ```go
-return template.New(name).
-	Funcs(template.FuncMap{
-		"modlet":    ModletFunc(fargs),
-		"mult":      MultFunc(fargs),
-		"output":    OutputFunc(fargs),
-		"set":       SetFunc(fargs),
-		"write":     WriteFunc(fargs),
-		"xmlHeader": func() string { return xml.Header },
-		"comment":   CommentFunc(), // Add this line
-	}).
-	Parse(string(data))
+"comment": CommentFunc(),
 ```
 
 **Step 5: Run test to verify it passes**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run TestCommentFunc ./modlet/tests/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v -run TestCommentFunc ./modlet/tests/
+```
+
 Expected: PASS
 
 **Step 6: Commit**
@@ -819,15 +956,22 @@ git commit -m "feat(modlet): add comment template function"
 
 ## Task 8: Add prob Template Function
 
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-modtools`
+
+**Read First:**
+
+- `modlet/helpers.go` - ProbMult function we'll use
+- `modlet/functions.go` - Pattern from SetFunc and MultFunc
+
 **Files:**
 
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/functions.go`
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/unpack.go`
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/tests/functions_test.go`
+- Modify: `modlet/functions.go`
+- Modify: `modlet/unpack.go`
+- Modify: `modlet/tests/functions_test.go`
 
 **Step 1: Write the failing test**
 
-Add to `functions_test.go`:
+Add to `modlet/tests/functions_test.go`:
 
 ```go
 func TestProbFunc(t *testing.T) {
@@ -852,12 +996,14 @@ func TestProbFunc(t *testing.T) {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run TestProbFunc ./modlet/tests/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v -run TestProbFunc ./modlet/tests/
+```
+
 Expected: FAIL with "undefined: modlet.ProbFunc"
 
-**Step 3: Write minimal implementation**
-
-Add to `functions.go`:
+**Step 3: Add ProbFunc to functions.go**
 
 ```go
 // ProbFunc creates a probability instruction with value capped at 1.0
@@ -885,9 +1031,9 @@ func ProbFunc(fargs FuncArgs) func(string, string, ...string) string {
 }
 ```
 
-**Step 4: Register function in unpack.go NewTemplate**
+**Step 4: Register in unpack.go FuncMap**
 
-Add to the FuncMap in `NewTemplate`:
+Add to the FuncMap in `modlet/unpack.go`:
 
 ```go
 "prob": ProbFunc(fargs),
@@ -895,7 +1041,11 @@ Add to the FuncMap in `NewTemplate`:
 
 **Step 5: Run test to verify it passes**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run TestProbFunc ./modlet/tests/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v -run TestProbFunc ./modlet/tests/
+```
+
 Expected: PASS
 
 **Step 6: Commit**
@@ -908,27 +1058,276 @@ git commit -m "feat(modlet): add prob template function with 1.0 cap"
 
 ---
 
-## Task 9: Integrate GameData into Template Execution
+## CHECKPOINT B: Verify modtools Tests Pass
+
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-modtools`
+
+**Run all existing tests:**
+
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v ./...
+```
+
+**Expected:** All tests PASS
+
+**If any test fails:** STOP and fix before proceeding to Task 9.
+
+---
+
+## Task 9: Add GameData Field to FuncArgs
+
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-modtools`
+
+**Read First:**
+
+- `modlet/functions.go:58-66` - Current FuncArgs struct definition
 
 **Files:**
 
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/unpack.go`
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/functions.go`
-- Create: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/tests/gamedata_integration_test.go`
+- Modify: `modlet/functions.go`
 
-**Step 1: Write the failing test**
+**Step 1: Add import for gamedata package**
+
+At the top of `modlet/functions.go`, add to imports:
 
 ```go
-// gamedata_integration_test.go
+"github.com/donovanmods/7dtd-modtools/gamedata"
+```
+
+**Step 2: Add GameData field to FuncArgs**
+
+Update the FuncArgs struct in `modlet/functions.go`:
+
+```go
+type FuncArgs struct {
+	Output   string
+	Gamedir  string
+	ModInfo  *modinfo.ModInfo
+	FBuffer  *FileBuffer
+	GBuffer  *bytes.Buffer
+	FBufMap  FileBufferMap
+	Options  map[string]string
+	GameData *gamedata.GameData // ADD THIS LINE
+}
+```
+
+**Step 3: Verify compilation**
+
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go build ./...
+```
+
+Expected: Build succeeds (no errors)
+
+**Step 4: Run existing tests to ensure no regression**
+
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v ./modlet/tests/
+```
+
+Expected: All existing tests still PASS
+
+**Step 5: Commit**
+
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+git add modlet/functions.go
+git commit -m "refactor(modlet): add GameData field to FuncArgs struct"
+```
+
+---
+
+## Task 10: Load GameData in Unpack Function
+
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-modtools`
+
+**Read First:**
+
+- `modlet/unpack.go` - Full Unpack function, note where fargs is created
+- `gamedata/gamedata.go` - Load function signature
+
+**Files:**
+
+- Modify: `modlet/unpack.go`
+
+**Step 1: Add import for gamedata package**
+
+At the top of `modlet/unpack.go`, add to imports:
+
+```go
+"github.com/donovanmods/7dtd-modtools/gamedata"
+```
+
+**Step 2: Add game data loading after path cleaning**
+
+In the `Unpack` function, after the line `output = filepath.Clean(output)`, add:
+
+```go
+// Load game data
+var gd *gamedata.GameData
+if gamedir != "" && gamedir != "." {
+	var err error
+	gd, err = gamedata.Load(gamedir)
+	if err != nil {
+		logger.Warn("could not load game data from %s: %v", gamedir, err)
+		gd = &gamedata.GameData{} // Empty game data
+	}
+} else {
+	gd = &gamedata.GameData{}
+}
+```
+
+**Step 3: Add GameData to fargs**
+
+Update the fargs initialization to include GameData:
+
+```go
+fargs := FuncArgs{
+	Output:   output,
+	Gamedir:  gamedir,
+	ModInfo:  &modInfo,
+	FBuffer:  fBuffer,
+	GBuffer:  gBuffer,
+	FBufMap:  fBufMap,
+	GameData: gd, // ADD THIS LINE
+	Options: map[string]string{
+		"force": strconv.FormatBool(force),
+	},
+}
+```
+
+**Step 4: Pass GameData to template execution**
+
+Replace the `t.ExecuteTemplate` call with:
+
+```go
+// Create template data with GameData
+templateData := struct {
+	GameData *gamedata.GameData
+}{
+	GameData: gd,
+}
+
+if err := t.ExecuteTemplate(gBuffer, templateName, templateData); err != nil {
+	return fmt.Errorf("error executing template %s: %w", templateName, err)
+}
+```
+
+**Step 5: Verify compilation**
+
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go build ./...
+```
+
+Expected: Build succeeds
+
+**Step 6: Run existing tests**
+
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v ./modlet/tests/
+```
+
+Expected: All existing tests still PASS (they don't use GameData yet)
+
+**Step 7: Commit**
+
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+git add modlet/unpack.go
+git commit -m "feat(modlet): load GameData in Unpack and pass to template"
+```
+
+---
+
+## Task 11: Update Test Setup for GameData Filesystem
+
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-modtools`
+
+**Read First:**
+
+- `modlet/tests/modlet_test.go` - Current setup() function
+- `gamedata/gamedata.go` - Note the FS variable
+
+**Files:**
+
+- Modify: `modlet/tests/modlet_test.go`
+
+**Step 1: Add import for gamedata package**
+
+Add to imports in `modlet/tests/modlet_test.go`:
+
+```go
+"github.com/donovanmods/7dtd-modtools/gamedata"
+```
+
+**Step 2: Update setup() to set gamedata.FS**
+
+Update the `setup` function:
+
+```go
+func setup(t *testing.T) *assert.Assertions {
+	t.Helper()
+
+	logger.Testing = true
+
+	// Use MemMapFs for testing
+	modlet.FS = FS
+	gamedata.FS = FS // ADD THIS LINE
+
+	mkTempDir(t)
+
+	return assert.New(t)
+}
+```
+
+**Step 3: Run tests to verify setup works**
+
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v ./modlet/tests/
+```
+
+Expected: All tests PASS
+
+**Step 4: Commit**
+
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+git add modlet/tests/modlet_test.go
+git commit -m "test(modlet): update setup to share filesystem with gamedata"
+```
+
+---
+
+## Task 12: Write GameData Integration Test
+
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-modtools`
+
+**Read First:**
+
+- `modlet/tests/unpack_test.go` - If exists, see existing patterns
+- `modlet/tests/modlet_test.go` - setup/cleanup patterns
+
+**Files:**
+
+- Create: `modlet/tests/gamedata_integration_test.go`
+
+**Step 1: Write the integration test**
+
+```go
+// modlet/tests/gamedata_integration_test.go
 package modlet_test
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/donovanmods/7dtd-modtools/modlet"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -991,247 +1390,43 @@ func TestUnpackWithGameData(t *testing.T) {
 }
 ```
 
-**Step 2: Run test to verify it fails**
-
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run TestUnpackWithGameData ./modlet/tests/`
-Expected: FAIL (GameData not available in template context)
-
-**Step 3: Update FuncArgs and Unpack**
-
-Add GameData to FuncArgs in `functions.go`:
-
-```go
-type FuncArgs struct {
-	Output   string
-	Gamedir  string
-	ModInfo  *modinfo.ModInfo
-	FBuffer  *FileBuffer
-	GBuffer  *bytes.Buffer
-	FBufMap  FileBufferMap
-	Options  map[string]string
-	GameData *gamedata.GameData // Add this
-}
-```
-
-Add import: `"github.com/donovanmods/7dtd-modtools/gamedata"`
-
-Update `Unpack` in `unpack.go` to load and pass game data:
-
-```go
-func Unpack(tmpl string, args CmdArgs) error {
-	args.Sanitize()
-
-	var (
-		gamedir = args.Gamedir
-		output  = args.Output
-		force   = args.Force
-		modInfo modinfo.ModInfo
-	)
-
-	tmpl = filepath.Clean(tmpl)
-	if tmpl == "" {
-		return errors.New("no templates provided")
-	}
-
-	templateName := filepath.Base(tmpl)
-	if templateName == "" {
-		return errors.New("no template name provided")
-	}
-
-	if err := ValidateTemplate(tmpl); err != nil {
-		return fmt.Errorf("error validating template %s: %w", tmpl, err)
-	}
-
-	gamedir = filepath.Clean(gamedir)
-	output = filepath.Clean(output)
-
-	// Load game data
-	var gd *gamedata.GameData
-	if gamedir != "" && gamedir != "." {
-		var err error
-		gd, err = gamedata.Load(gamedir)
-		if err != nil {
-			logger.Warn("could not load game data from %s: %v", gamedir, err)
-			gd = &gamedata.GameData{} // Empty game data
-		}
-	} else {
-		gd = &gamedata.GameData{}
-	}
-
-	fBufMap := make(FileBufferMap)
-	gBuffer := bytes.NewBuffer(nil)
-	fBuffer := &FileBuffer{
-		Buffer: gBuffer,
-		Writer: nil,
-	}
-
-	logger.Debug("processing template: %s", templateName)
-
-	fargs := FuncArgs{
-		Output:   output,
-		Gamedir:  gamedir,
-		ModInfo:  &modInfo,
-		FBuffer:  fBuffer,
-		GBuffer:  gBuffer,
-		FBufMap:  fBufMap,
-		GameData: gd, // Add this
-		Options: map[string]string{
-			"force": strconv.FormatBool(force),
-		},
-	}
-
-	t, err := NewTemplate(tmpl, templateName, fargs)
-	if err != nil {
-		return fmt.Errorf("error parsing template %s: %w", templateName, err)
-	}
-
-	// Create template data with GameData
-	templateData := struct {
-		GameData *gamedata.GameData
-	}{
-		GameData: gd,
-	}
-
-	if err := t.ExecuteTemplate(gBuffer, templateName, templateData); err != nil {
-		return fmt.Errorf("error executing template %s: %w", templateName, err)
-	}
-
-	// Write our fBuffer to disk
-	for path, fBuffer := range fBufMap {
-		if err := WriteBuf(path, fBuffer); err != nil {
-			logger.Panic(err)
-		}
-	}
-
-	return nil
-}
-```
-
-Add import to `unpack.go`: `"github.com/donovanmods/7dtd-modtools/gamedata"`
-
-**Step 4: Update gamedata.Load to use afero filesystem**
-
-Update `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/gamedata/gamedata.go` to accept a filesystem:
-
-```go
-package gamedata
-
-import (
-	"encoding/xml"
-	"fmt"
-	"path/filepath"
-
-	"github.com/donovanmods/7dtd-gamedata/gamexml"
-	"github.com/spf13/afero"
-)
-
-// FS is the filesystem to use (can be swapped for testing)
-var FS = &afero.Afero{Fs: afero.NewOsFs()}
-
-// GameData holds parsed game XML data
-type GameData struct {
-	Blocks        []gamexml.Block
-	EntityClasses []gamexml.EntityClass
-}
-
-// Load parses game XML files from the given directory
-func Load(gamedir string) (*GameData, error) {
-	gd := &GameData{}
-
-	// Load blocks.xml
-	blocksPath := filepath.Join(gamedir, "blocks.xml")
-	if err := gd.loadBlocks(blocksPath); err != nil {
-		return nil, fmt.Errorf("loading blocks.xml: %w", err)
-	}
-
-	// Load entityclasses.xml
-	entityPath := filepath.Join(gamedir, "entityclasses.xml")
-	if err := gd.loadEntityClasses(entityPath); err != nil {
-		return nil, fmt.Errorf("loading entityclasses.xml: %w", err)
-	}
-
-	return gd, nil
-}
-
-func (gd *GameData) loadBlocks(path string) error {
-	data, err := FS.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	var blocks gamexml.Blocks
-	if err := xml.Unmarshal(data, &blocks); err != nil {
-		return err
-	}
-
-	gd.Blocks = blocks.Block
-	return nil
-}
-
-func (gd *GameData) loadEntityClasses(path string) error {
-	data, err := FS.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	var entities gamexml.EntityClasses
-	if err := xml.Unmarshal(data, &entities); err != nil {
-		return err
-	}
-
-	gd.EntityClasses = entities.EntityClass
-	return nil
-}
-```
-
-**Step 5: Update test setup to share filesystem**
-
-Update `modlet_test.go` setup to also set gamedata.FS:
-
-```go
-func setup(t *testing.T) *assert.Assertions {
-	t.Helper()
-
-	logger.Testing = true
-
-	// Use MemMapFs for testing
-	modlet.FS = FS
-	gamedata.FS = FS  // Add this
-
-	mkTempDir(t)
-
-	return assert.New(t)
-}
-```
-
-Add import: `"github.com/donovanmods/7dtd-modtools/gamedata"`
-
-**Step 6: Run test to verify it passes**
-
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run TestUnpackWithGameData ./modlet/tests/`
-Expected: PASS
-
-**Step 7: Commit**
+**Step 2: Run test**
 
 ```bash
 cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
-git add modlet/ gamedata/
-git commit -m "feat(modlet): integrate GameData into template execution"
+go test -v -run TestUnpackWithGameData ./modlet/tests/
+```
+
+Expected: PASS
+
+**Step 3: Commit**
+
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+git add modlet/tests/gamedata_integration_test.go
+git commit -m "test(modlet): add integration test for GameData in templates"
 ```
 
 ---
 
-## Task 10: Add Helper Functions to Template FuncMap
+## Task 13: Add Helper Functions to Template FuncMap
+
+> **Working Directory:** `/home/dyoung/Projects/mods/7dtd/7dtd-modtools`
+
+**Read First:**
+
+- `modlet/unpack.go` - Current FuncMap in NewTemplate
+- `modlet/helpers.go` - Functions to add
 
 **Files:**
 
-- Modify: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/unpack.go`
-- Create: `/home/dyoung/Projects/mods/7dtd/7dtd-modtools/modlet/tests/template_helpers_test.go`
+- Modify: `modlet/unpack.go`
+- Create: `modlet/tests/template_helpers_test.go`
 
-**Step 1: Write the failing test**
+**Step 1: Write the test**
 
 ```go
-// template_helpers_test.go
+// modlet/tests/template_helpers_test.go
 package modlet_test
 
 import (
@@ -1290,12 +1485,16 @@ probMult: {{ probMult "0.8" 1.5 }}
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run TestTemplateHelperFunctions ./modlet/tests/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v -run TestTemplateHelperFunctions ./modlet/tests/
+```
+
 Expected: FAIL with "function 'hasPrefix' not defined"
 
-**Step 3: Add helper functions to NewTemplate FuncMap**
+**Step 3: Add helper functions to FuncMap**
 
-Update `NewTemplate` in `unpack.go`:
+Update `NewTemplate` in `modlet/unpack.go`:
 
 ```go
 return template.New(name).
@@ -1322,7 +1521,11 @@ return template.New(name).
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v -run TestTemplateHelperFunctions ./modlet/tests/`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v -run TestTemplateHelperFunctions ./modlet/tests/
+```
+
 Expected: PASS
 
 **Step 5: Commit**
@@ -1335,29 +1538,52 @@ git commit -m "feat(modlet): add helper functions to template FuncMap"
 
 ---
 
-## Task 11: Run All Tests and Verify
+## CHECKPOINT C: Final Verification
+
+> **Verify both repositories before completing Phase 1**
 
 **Step 1: Run all tests in 7dtd-gamedata**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata && go test -v ./...`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata
+go test -v ./...
+```
+
 Expected: All tests PASS
 
 **Step 2: Run all tests in 7dtd-modtools**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go test -v ./...`
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v ./...
+```
+
 Expected: All tests PASS
 
 **Step 3: Run lint checks**
 
-Run: `cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && task check`
-Expected: No errors
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+task check
+```
 
-**Step 4: Final commit for Phase 1**
+Expected: No errors (warnings OK)
+
+**Step 4: Run go mod tidy in both repos**
+
+```bash
+cd /home/dyoung/Projects/mods/7dtd/7dtd-gamedata && go mod tidy
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools && go mod tidy
+```
+
+**Step 5: Final commit if any cleanup needed**
 
 ```bash
 cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+git status
+# If there are changes:
 git add -A
-git commit -m "chore: complete Phase 1 core infrastructure" --allow-empty
+git commit -m "chore: Phase 1 cleanup"
 ```
 
 ---
@@ -1366,13 +1592,32 @@ git commit -m "chore: complete Phase 1 core infrastructure" --allow-empty
 
 Phase 1 establishes the foundation for template-based modlet generation:
 
-1. **7dtd-gamedata enhancements**: Added `DropEvents()`, `GetProperty()`, `HasProperty()` methods to Block and EntityClass types
-2. **GameData loader**: Created `gamedata` package to load and parse game XML files
-3. **Helper functions**: Added `hasPrefix`, `hasSuffix`, `match`, `notMatch`, `multValue`, `probMult`
-4. **Template functions**: Added `comment`, `prob`; completed `mult` with min/max bounds
-5. **Template integration**: GameData now available as `.GameData` in templates
+1. **7dtd-gamedata enhancements** (Tasks 1-3):
+   - `Block.DropEvents(event)` - Filter drop events by type
+   - `Block.GetProperty(name)` - Get property value
+   - `Block.HasProperty(name)` - Check property exists
+   - `EntityClass.DropEvents` field + `GetDropEvents(event)` method
 
-Templates can now:
+2. **GameData loader** (Task 4):
+   - `gamedata.Load(dir)` - Parse blocks.xml and entityclasses.xml
+   - Uses afero for filesystem abstraction
+
+3. **Helper functions** (Task 5):
+   - `hasPrefix`, `hasSuffix` - String matching
+   - `match`, `notMatch` - Regex matching
+   - `multValue` - Multiply CSV values
+   - `probMult` - Multiply probability with 1.0 cap
+
+4. **Template functions** (Tasks 6-8):
+   - `mult` - Completed with min/max bounds
+   - `comment` - XML comment generation
+   - `prob` - Probability with cap
+
+5. **Template integration** (Tasks 9-13):
+   - GameData passed to templates as `.GameData`
+   - All helper functions available in templates
+
+**Templates can now:**
 
 - Access game blocks via `{{ range .GameData.Blocks }}`
 - Filter by name patterns via `{{ if hasPrefix .Name "terr" }}`
