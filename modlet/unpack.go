@@ -27,6 +27,7 @@ import (
 	"text/template"
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
+	"github.com/donovanmods/7dtd-modtools/gamedata"
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
 )
 
@@ -57,6 +58,19 @@ func Unpack(tmpl string, args CmdArgs) error {
 	gamedir = filepath.Clean(gamedir)
 	output = filepath.Clean(output)
 
+	// Load game data
+	var gd *gamedata.GameData
+	if gamedir != "" && gamedir != "." {
+		var err error
+		gd, err = gamedata.Load(gamedir)
+		if err != nil {
+			logger.Warn("could not load game data from %s: %v", gamedir, err)
+			gd = &gamedata.GameData{} // Empty game data
+		}
+	} else {
+		gd = &gamedata.GameData{}
+	}
+
 	fBufMap := make(FileBufferMap)
 	gBuffer := bytes.NewBuffer(nil)
 	fBuffer := &FileBuffer{
@@ -67,12 +81,13 @@ func Unpack(tmpl string, args CmdArgs) error {
 	logger.Debug("processing template: %s", templateName)
 
 	fargs := FuncArgs{
-		Output:  output,
-		Gamedir: gamedir,
-		ModInfo: &modInfo,
-		FBuffer: fBuffer,
-		GBuffer: gBuffer,
-		FBufMap: fBufMap,
+		Output:   output,
+		Gamedir:  gamedir,
+		ModInfo:  &modInfo,
+		FBuffer:  fBuffer,
+		GBuffer:  gBuffer,
+		FBufMap:  fBufMap,
+		GameData: gd,
 		Options: map[string]string{
 			"force": strconv.FormatBool(force),
 		},
@@ -83,7 +98,14 @@ func Unpack(tmpl string, args CmdArgs) error {
 		return fmt.Errorf("error parsing template %s: %w", templateName, err)
 	}
 
-	if err := t.ExecuteTemplate(gBuffer, templateName, nil); err != nil {
+	// Create template data with GameData
+	templateData := struct {
+		GameData *gamedata.GameData
+	}{
+		GameData: gd,
+	}
+
+	if err := t.ExecuteTemplate(gBuffer, templateName, templateData); err != nil {
 		return fmt.Errorf("error executing template %s: %w", templateName, err)
 	}
 
