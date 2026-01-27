@@ -122,10 +122,11 @@ func ModletFunc(fargs FuncArgs) func(string) null {
 }
 
 // MultFunc creates a multiplier instruction for modlet templates.
-// TODO: min and max parameters are parsed but not yet applied to the result.
+// Supports by=N (required), min=N (optional), max=N (optional)
 func MultFunc(fargs FuncArgs) func(string, ...string) string {
 	return func(xpath string, args ...string) string {
-		var multiplier float64
+		var multiplier, minVal, maxVal float64
+		var hasMin, hasMax bool
 		var err error
 
 		xpath = strings.TrimSpace(xpath)
@@ -138,19 +139,44 @@ func MultFunc(fargs FuncArgs) func(string, ...string) string {
 			logger.Fatal("mult requires additional argument (by= at least)")
 		}
 
+		// Parse by (required)
 		if by, ok := pargs["by"]; ok {
-			if !ok || by == "" {
+			if by == "" {
 				logger.Fatal("mult requires a valid by= argument")
 			}
-
 			if multiplier, err = strconv.ParseFloat(by, 64); err != nil {
 				logger.Fatal("error parsing multiplier %q: %w", by, err)
 			}
+		} else {
+			logger.Fatal("mult requires by= argument")
 		}
 
-		// TODO: Apply min/max bounds from pargs["min"] and pargs["max"] if provided
+		// Parse min (optional)
+		if min, ok := pargs["min"]; ok && min != "" {
+			if minVal, err = strconv.ParseFloat(min, 64); err != nil {
+				logger.Fatal("error parsing min %q: %w", min, err)
+			}
+			hasMin = true
+		}
 
-		return must(mkSet(xpath, strconv.FormatFloat(multiplier, 'f', -1, 64)))
+		// Parse max (optional)
+		if max, ok := pargs["max"]; ok && max != "" {
+			if maxVal, err = strconv.ParseFloat(max, 64); err != nil {
+				logger.Fatal("error parsing max %q: %w", max, err)
+			}
+			hasMax = true
+		}
+
+		// Apply bounds
+		result := multiplier
+		if hasMin && result < minVal {
+			result = minVal
+		}
+		if hasMax && result > maxVal {
+			result = maxVal
+		}
+
+		return must(mkSet(xpath, strconv.FormatFloat(result, 'f', -1, 64)))
 	}
 }
 

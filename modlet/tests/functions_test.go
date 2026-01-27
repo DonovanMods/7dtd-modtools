@@ -198,3 +198,31 @@ func TestMkPath(t *testing.T) {
 	assert.NoError(err, "Error checking for directory")
 	assert.True(exists, "Directory should exist")
 }
+
+func TestMultFuncWithBounds(t *testing.T) {
+	assert := setup(t)
+	defer cleanup(t)
+
+	funcArgs := modlet.FuncArgs{
+		ModInfo: &modinfo.ModInfo{},
+	}
+
+	fn := modlet.MultFunc(funcArgs)
+
+	// Basic multiplication (no bounds)
+	result := fn("//test/@value", "by=2.0")
+	assert.Contains(result, "<set")
+	assert.Contains(result, "2")
+
+	// With min bound - result should be clamped to min
+	result = fn("//test/@value", "by=0.5", "min=1")
+	assert.Contains(result, ">1<")
+
+	// With max bound - result should be clamped to max
+	result = fn("//test/@value", "by=10.0", "max=5")
+	assert.Contains(result, ">5<")
+
+	// Both bounds
+	result = fn("//test/@value", "by=0.1", "min=2", "max=10")
+	assert.Contains(result, ">2<")
+}
