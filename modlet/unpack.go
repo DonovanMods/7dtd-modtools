@@ -188,6 +188,7 @@ func NewTemplate(tmpl string, name string, fargs FuncArgs) (*template.Template, 
 
 	return template.New(name).
 		Funcs(template.FuncMap{
+			// Core functions
 			"modlet":    ModletFunc(fargs),
 			"mult":      MultFunc(fargs),
 			"output":    OutputFunc(fargs),
@@ -196,6 +197,13 @@ func NewTemplate(tmpl string, name string, fargs FuncArgs) (*template.Template, 
 			"xmlHeader": func() string { return xml.Header },
 			"comment":   CommentFunc(),
 			"prob":      ProbFunc(fargs),
+			// Helper functions
+			"hasPrefix": HasPrefix,
+			"hasSuffix": HasSuffix,
+			"match":     Match,
+			"notMatch":  NotMatch,
+			"multValue": MultValue,
+			"probMult":  ProbMult,
 		}).
 		Parse(string(data))
 }
