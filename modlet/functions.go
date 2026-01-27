@@ -27,6 +27,7 @@ import (
 
 	"github.com/donovanmods/7dtd-gamedata/modinfo"
 	"github.com/donovanmods/7dtd-gamedata/modlet"
+	"github.com/donovanmods/7dtd-modtools/gamedata"
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
 )
 
@@ -56,13 +57,14 @@ type FileBuffer struct {
 type FileBufferMap map[string]FileBuffer
 
 type FuncArgs struct {
-	Output  string
-	Gamedir string
-	ModInfo *modinfo.ModInfo
-	FBuffer *FileBuffer
-	GBuffer *bytes.Buffer
-	FBufMap FileBufferMap
-	Options map[string]string
+	Output   string
+	Gamedir  string
+	ModInfo  *modinfo.ModInfo
+	FBuffer  *FileBuffer
+	GBuffer  *bytes.Buffer
+	FBufMap  FileBufferMap
+	Options  map[string]string
+	GameData *gamedata.GameData
 }
 
 func (k Key) String() string {
