@@ -56,6 +56,51 @@ func setup(t *testing.T) *assert.Assertions {
 
 **Always set `logger.Testing = true`** in tests to prevent panics from becoming `os.Exit()` calls.
 
+### Test Helper Dependencies (7dtd-modtools)
+
+The integration tests in Tasks 12-13 use helper functions defined in `modlet/tests/modlet_test.go`. **Do not redefine these** - they are already available in the test package.
+
+| Helper         | Defined In                    | Purpose                                                                      |
+| -------------- | ----------------------------- | ---------------------------------------------------------------------------- |
+| `setup(t)`     | `modlet/tests/modlet_test.go` | Sets `logger.Testing=true`, `modlet.FS=FS`, creates temp dir, returns assert |
+| `cleanup(t)`   | `modlet/tests/modlet_test.go` | Removes temp directory after test                                            |
+| `FS`           | `modlet/tests/modlet_test.go` | Package-level `*afero.Afero` pointing to `MemMapFs`                          |
+| `testTMP`      | `modlet/tests/modlet_test.go` | Package-level string with temp directory path                                |
+| `mkTempDir(t)` | `modlet/tests/modlet_test.go` | Creates the temp directory in MemMapFs                                       |
+
+**When writing new test files in `modlet/tests/`:**
+
+1. The file must be in package `modlet_test` (note the `_test` suffix)
+2. Import the helpers implicitly - they're in the same test package
+3. Always call `setup(t)` at the start and `defer cleanup(t)`
+4. Use `FS` for all filesystem operations (not `os` or `afero.NewOsFs()`)
+5. Use `testTMP` as the base path for test files
+
+**Example test structure:**
+
+```go
+package modlet_test  // Same package as modlet_test.go
+
+import (
+    "path/filepath"
+    "testing"
+
+    "github.com/donovanmods/7dtd-modtools/modlet"
+    "github.com/stretchr/testify/require"
+)
+
+func TestMyFeature(t *testing.T) {
+    assert := setup(t)      // Uses existing helper
+    defer cleanup(t)        // Uses existing helper
+
+    // Use FS and testTMP from modlet_test.go
+    path := filepath.Join(testTMP, "myfile.txt")
+    require.NoError(t, FS.WriteFile(path, []byte("content"), 0644))
+
+    // ... test logic ...
+}
+```
+
 ---
 
 ## Task 1: Add DropEvents Method to Block Type
@@ -365,7 +410,33 @@ go test -v ./...
 
 **Expected:** All tests PASS (existing tests + 3 new test functions)
 
-**If any test fails:** STOP and fix before proceeding to Task 4.
+**If any test fails:** STOP and diagnose before proceeding to Task 4.
+
+### Recovery Guide for Checkpoint A
+
+**Common failures and fixes:**
+
+| Symptom                                          | Likely Cause                                    | Fix                                                                                       |
+| ------------------------------------------------ | ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `undefined: DropEvent`                           | DropEvent type not exported or in wrong package | Check `gamexml/blocks.go` - ensure `DropEvent` struct is defined and exported (capital D) |
+| `unknown field 'DropEvents'` in EntityClass test | Field not added to struct                       | Add `DropEvents []DropEvent` field to EntityClass in `gamexml/entityclasses.go`           |
+| Test compiles but wrong results                  | Method logic error                              | Compare method implementation against test expectations; add debug prints                 |
+| Import cycle error                               | Circular import between packages                | Move shared types to a common package or restructure                                      |
+
+**Diagnostic commands:**
+
+```bash
+# Check what's exported from gamexml
+go doc github.com/donovanmods/7dtd-gamedata/gamexml
+
+# Run single failing test with verbose output
+go test -v -run TestBlockDropEvents ./gamexml/tests/ 2>&1
+
+# Check for compilation errors only
+go build ./...
+```
+
+**If stuck:** Review the original Block struct in `gamexml/blocks.go` to ensure your additions match the existing patterns (XML tags, field naming conventions).
 
 ---
 
@@ -1071,7 +1142,41 @@ go test -v ./...
 
 **Expected:** All tests PASS
 
-**If any test fails:** STOP and fix before proceeding to Task 9.
+**If any test fails:** STOP and diagnose before proceeding to Task 9.
+
+### Recovery Guide for Checkpoint B
+
+**Common failures and fixes:**
+
+| Symptom                          | Likely Cause                             | Fix                                                                              |
+| -------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------- |
+| `cannot find package "gamedata"` | Package not created or wrong import path | Verify `gamedata/gamedata.go` exists with correct `package gamedata` declaration |
+| `undefined: modlet.HasPrefix`    | Function not exported                    | Ensure function names start with capital letter in `modlet/helpers.go`           |
+| `logger.Fatal` causes test panic | `logger.Testing` not set                 | Ensure test calls `setup(t)` which sets `logger.Testing = true`                  |
+| `MultFunc` test fails on bounds  | Bounds logic incorrect                   | Review the min/max clamping logic in `MultFunc`                                  |
+| `FuncMap` registration error     | Function signature mismatch              | Check that function signatures match what template expects                       |
+
+**Diagnostic commands:**
+
+```bash
+# Check what's exported from modlet package
+go doc github.com/donovanmods/7dtd-modtools/modlet | head -50
+
+# Run single failing test
+go test -v -run TestMultFuncWithBounds ./modlet/tests/
+
+# Check imports are resolved
+go mod tidy && go build ./...
+
+# See all test functions
+go test -list '.*' ./modlet/tests/
+```
+
+**If stuck:**
+
+1. Check that `go.mod` has the `replace` directive for 7dtd-gamedata pointing to the local path
+2. Run `go mod tidy` to fix import issues
+3. Compare your function signatures against existing functions in `modlet/functions.go`
 
 ---
 
@@ -1585,6 +1690,48 @@ git status
 git add -A
 git commit -m "chore: Phase 1 cleanup"
 ```
+
+### Recovery Guide for Checkpoint C
+
+**Common failures and fixes:**
+
+| Symptom                                      | Likely Cause                               | Fix                                                                                               |
+| -------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| Integration test fails on template execution | `templateData` struct not passed correctly | Check Task 10 implementation - ensure `ExecuteTemplate` receives the struct with `GameData` field |
+| `function 'hasPrefix' not defined`           | Helper not added to FuncMap                | Check `modlet/unpack.go` FuncMap registration (Task 13)                                           |
+| Lint errors about unused imports             | Import added but function not used         | Remove unused import or add the function that uses it                                             |
+| `gamedata.FS` nil pointer                    | Test setup doesn't set `gamedata.FS`       | Ensure `setup(t)` includes `gamedata.FS = FS` (Task 11)                                           |
+| Template output missing expected content     | Template data not accessible               | Verify template uses `.GameData.Blocks` (with dot prefix)                                         |
+
+**Diagnostic commands:**
+
+```bash
+# Run integration test with verbose output
+cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
+go test -v -run TestUnpackWithGameData ./modlet/tests/
+
+# Check template FuncMap has all functions
+grep -A 30 'template.FuncMap' modlet/unpack.go
+
+# Verify gamedata package exports
+go doc github.com/donovanmods/7dtd-modtools/gamedata
+
+# Run lint with auto-fix for formatting issues
+task format
+```
+
+**If integration tests fail:**
+
+1. First verify the unit tests pass: `go test -v -run 'Test(HasPrefix|MultValue|CommentFunc)' ./modlet/tests/`
+2. Check that `gamedata.FS` is set in test setup (Task 11)
+3. Verify the template syntax - use `{{ .GameData.Blocks }}` not `{{ GameData.Blocks }}`
+4. Add debug output to template: `{{ printf "%+v" .GameData }}`
+
+**If lint fails:**
+
+1. Run `task format` first to auto-fix formatting
+2. For unused variable warnings, prefix with `_` or remove
+3. For import order issues, use `goimports -w <file>`
 
 ---
 
