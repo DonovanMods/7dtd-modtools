@@ -16,6 +16,7 @@ package modlet_test
 import (
 	"testing"
 
+	"github.com/donovanmods/7dtd-modtools/gamedata"
 	"github.com/donovanmods/7dtd-modtools/lib/logger"
 	"github.com/donovanmods/7dtd-modtools/modlet"
 	"github.com/spf13/afero"
@@ -50,6 +51,7 @@ func setup(t *testing.T) *assert.Assertions {
 
 	// Use MemMapFs for testing
 	modlet.FS = FS
+	gamedata.FS = FS
 
 	mkTempDir(t)
 
