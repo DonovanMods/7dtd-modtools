@@ -44,8 +44,16 @@ func TestUnpackWithGameData(t *testing.T) {
 	</entity_class>
 </entity_classes>`
 
+	// Minimal stubs so gamedata.Load() succeeds (it requires all five files)
+	itemsXML := `<?xml version="1.0" encoding="UTF-8"?><items></items>`
+	recipesXML := `<?xml version="1.0" encoding="UTF-8"?><recipes></recipes>`
+	lootXML := `<?xml version="1.0" encoding="UTF-8"?><lootcontainers></lootcontainers>`
+
 	require.NoError(t, FS.WriteFile(filepath.Join(gameDir, "blocks.xml"), []byte(blocksXML), 0644))
 	require.NoError(t, FS.WriteFile(filepath.Join(gameDir, "entityclasses.xml"), []byte(entityXML), 0644))
+	require.NoError(t, FS.WriteFile(filepath.Join(gameDir, "items.xml"), []byte(itemsXML), 0644))
+	require.NoError(t, FS.WriteFile(filepath.Join(gameDir, "recipes.xml"), []byte(recipesXML), 0644))
+	require.NoError(t, FS.WriteFile(filepath.Join(gameDir, "loot.xml"), []byte(lootXML), 0644))
 
 	// Create template that uses game data
 	tmplContent := `{{- modlet "test-gamedata" -}}

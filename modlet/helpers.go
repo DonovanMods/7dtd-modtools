@@ -47,7 +47,17 @@ func NotMatch(s, pattern string) bool {
 	return !Match(s, pattern)
 }
 
+// roundHalfUp rounds x to the nearest integer, with 0.5 rounding away from zero
+// (round-half-up semantics). Go's math.Round uses round-half-to-even (banker's rounding).
+func roundHalfUp(x float64) float64 {
+	if x >= 0 {
+		return math.Floor(x + 0.5)
+	}
+	return math.Ceil(x - 0.5)
+}
+
 // MultValue multiplies a numeric value (or CSV of values) by factor, rounding to int
+// using round-half-up (e.g. 82.5 → 83).
 func MultValue(value string, factor float64) string {
 	if value == "" {
 		return "0"
@@ -64,7 +74,7 @@ func MultValue(value string, factor float64) string {
 			results[i] = part
 			continue
 		}
-		result := math.Round(num * factor)
+		result := roundHalfUp(num * factor)
 		results[i] = strconv.FormatFloat(result, 'f', 0, 64)
 	}
 
