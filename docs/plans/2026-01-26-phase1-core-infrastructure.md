@@ -1669,7 +1669,7 @@ Expected: All tests PASS
 
 ```bash
 cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
-task check
+make check
 ```
 
 Expected: No errors (warnings OK)
@@ -1717,7 +1717,7 @@ grep -A 30 'template.FuncMap' modlet/unpack.go
 go doc github.com/donovanmods/7dtd-modtools/gamedata
 
 # Run lint with auto-fix for formatting issues
-task format
+make format
 ```
 
 **If integration tests fail:**
@@ -1729,7 +1729,7 @@ task format
 
 **If lint fails:**
 
-1. Run `task format` first to auto-fix formatting
+1. Run `make format` first to auto-fix formatting
 2. For unused variable warnings, prefix with `_` or remove
 3. For import order issues, use `goimports -w <file>`
 

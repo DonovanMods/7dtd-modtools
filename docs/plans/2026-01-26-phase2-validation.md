@@ -568,7 +568,7 @@ Expected: PASS
 
 ```bash
 cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
-task check
+make check
 git add validate/
 git commit -m "feat(validate): add XPath extraction from modlet config files"
 ```
@@ -713,7 +713,7 @@ Expected: All extraction tests PASS
 
 ```bash
 cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
-task check
+make check
 git add validate/extract.go validate/extract_test.go
 git commit -m "feat(validate): add line number tracking to XPath extraction"
 ```
@@ -859,7 +859,7 @@ Expected: PASS
 
 ```bash
 cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
-task check
+make check
 git add validate/
 git commit -m "feat(validate): add core XPath validation logic"
 ```
@@ -1086,7 +1086,7 @@ Expected: PASS
 
 ```bash
 cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
-task check
+make check
 git add validate/
 git commit -m "feat(validate): add failure diagnostics with parent path analysis"
 ```
@@ -1283,7 +1283,7 @@ Expected: PASS
 
 ```bash
 cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
-task check
+make check
 git add validate/
 git commit -m "feat(validate): add report formatting with summary output"
 ```
@@ -1453,7 +1453,7 @@ Expected: Build succeeds
 
 ```bash
 cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
-task check
+make check
 git add cmd/modlet/validate/ cmd/modlet/modlet.go
 git commit -m "feat(cmd): add modlet validate command"
 ```
@@ -1530,7 +1530,7 @@ Expected: All tests PASS
 
 ```bash
 cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
-task check
+make check
 git add cmd/modlet/unpack/ modlet/
 git commit -m "feat(unpack): integrate validation with --no-validate and --strict flags"
 ```
@@ -1559,7 +1559,7 @@ go test -v ./...
 
 ```bash
 cd /home/dyoung/Projects/mods/7dtd/7dtd-modtools
-task check
+make check
 ```
 
 **Step 4: Manual test**

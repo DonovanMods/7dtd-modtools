@@ -16,18 +16,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Run tests with coverage
-task test                    # or: go test -v -cover ./...
+make test                    # or: go test -v -cover ./...
 
 # Lint and format
-task check                   # Runs trunk check (depends on format)
-task format                  # Runs trunk fmt (depends on tidy)
+make check                   # Runs trunk check (depends on format)
+make format                  # Runs trunk fmt (depends on tidy)
 
 # Build
-task build                   # All platforms (runs check + test first)
+make build                   # All platforms (runs check + test first)
 go build -o bin/7dmt ./main.go  # Quick local build
 
 # Clean
-task clean                   # Remove build artifacts and caches
+make clean                   # Remove build artifacts and caches
 ```
 
 **Run a single test:**
